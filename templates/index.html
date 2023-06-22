@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+    <header class="bg-primary text-white text-center" style="padding: 5rem 0;">
+        <h1 class="display-4">Welcome to Salesforce Manager</h1>
+        <p class="lead">Streamline Your Salesforce Activities with Precision and Ease</p>
+        {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('signup') }}" class="btn btn-light btn-lg">Get Started</a>
+        {% endif %}
+    </header>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2>Manage Pre-Opportunity Data</h2>
+                    <p>Our intuitive dashboard makes it easy to manage your Salesforce data in the pre-opportunity phase. Access and edit your accounts efficiently.</p>
+                </div>
+                <div class="col-lg-6">
+                    <img src="{{ url_for('static', filename='img/manage-data.png') }}" alt="Manage Data" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 order-lg-2">
+                    <h2>Engage Your Customers</h2>
+                    <p>Equip your sales reps with powerful tools to engage customers effectively. Connect customers with marketing events, and analyze insights.</p>
+                </div>
+                <div class="col-lg-6 order-lg-1">
+                    <img src="{{ url_for('static', filename='img/engage-customers.png') }}" alt="Engage Customers" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2>Collaborate with Your Team</h2>
+                    <p>Seamlessly collaborate with your team members. Assign roles and permissions, and track activities.</p>
+                </div>
+                <div class="col-lg-6">
+                    <img src="{{ url_for('static', filename='img/collaborate.png') }}" alt="Collaborate" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-3 bg-dark text-white text-center">
+        <p class="mb-0">© 2023 Salesforce Manager. All rights reserved.</p>
+    </footer>
+{% endblock %}

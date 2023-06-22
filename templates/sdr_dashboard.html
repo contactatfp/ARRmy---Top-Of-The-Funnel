@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+        <h1>Welcome to the SDR Dashboard</h1>
+        <p>Here you can view your sales metrics and manage your accounts.</p>
+        <!-- Add your dashboard content here -->
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+{% endblock %}
+
