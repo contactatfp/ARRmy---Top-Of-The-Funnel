@@ -23,3 +23,20 @@ Clone the repository:
 git clone <REPO_LINK>
 cd <REPO_DIRECTORY>
 
+Install the required packages:
+
+sh
+
+pip install -r requirements.txt
+
+Configuration
+Update config.json with Salesforce OAuth credentials (Consumer Key, Consumer Secret, and Password).
+Set up the environment variables or update app.config for Flask secret key and database configurations.
+Usage
+Start the Flask development server:
+
+flask run
+Open your browser and navigate to http://127.0.0.1:5000.
+
+#Contributing#Contributing
+If you want to contribute to this project, please fork the repository and create a pull request.
