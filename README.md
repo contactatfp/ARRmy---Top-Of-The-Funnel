@@ -20,8 +20,8 @@ Before you begin, ensure you have met the following requirements:
 Clone the repository:
 
 ```sh
-git clone <REPO_LINK>
-cd <REPO_DIRECTORY>
+git clone https://github.com/contactatfp/ARRmy---Top-Of-The-Funnel.git
+
 
 Install the required packages:
 
