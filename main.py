@@ -2,7 +2,7 @@ import json
 
 import requests
 from dateutil.parser import parse
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import DateTime
 
@@ -38,6 +38,12 @@ def load_user(user_id):
 @app.route('/')
 def index():  # put application's code here
     get_data()
+    # if user is logged in, redirect to appropriate dashboard
+    if current_user.is_authenticated:
+        if current_user.role == RoleEnum.sales_rep:
+            return redirect(url_for('sales_dashboard'))
+        elif current_user.role == RoleEnum.sdr:
+            return redirect(url_for('sdr_dashboard', accounts=Account.query.all()))
     return render_template('index.html')
 
 
@@ -92,7 +98,8 @@ def login():
                 if user.role == RoleEnum.sales_rep:
                     return redirect(url_for('sales_dashboard'))
                 elif user.role == RoleEnum.sdr:
-                    return render_template('sdr_dashboard.html')
+                    return redirect(url_for('sdr_dashboard', accounts=Account.query.all()))
+
                 else:
                     return redirect(url_for('index'))
         flash('Invalid username or password')
@@ -132,8 +139,10 @@ def sales_dashboard():
 @login_required
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
+    accounts = Account.query.all()
+    print(accounts)
     if current_user.role == RoleEnum.sdr:
-        return render_template('sdr_dashboard.html')
+        return render_template('sdr_dashboard.html', accounts=accounts)
     return "Access denied", 403
 
 
@@ -142,9 +151,6 @@ DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 
 def tokens():
     try:
-        with open('config.json') as f:
-            config = json.load(f)
-
         payload = {
             'grant_type': 'password',
             'client_id': config['consumer-key'],
@@ -188,66 +194,108 @@ def get_user_token(username, pw):
 
 
 def get_data():
-    token = tokens()
-    print(token['access_token'])
-    token = token['access_token']
+    try:
+        token = tokens()
+        if token is None:
+            return {"error": "Failed to get Salesforce token"}
 
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    endpoint = '/services/data/v58.0/query/'
-    records = []
-    response = requests.get(DOMAIN + endpoint, headers=headers, params={'q': soql_query()})
+        print(token['access_token'])
+        access_token = token['access_token']
 
-    # Let's print the response to understand its structure
-    print("Response from Salesforce:", response.json())
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        endpoint = '/services/data/v58.0/query/'
+        records = []
 
-    # Then, check if the 'totalSize' and 'records' are in the response
-    if 'totalSize' in response.json() and 'records' in response.json():
-        total_size = response.json()['totalSize']
-        records.extend(response.json()['records'])
+        params = {'q': soql_query()}
+        response = requests.get(DOMAIN + endpoint, headers=headers, params=params)
 
-        while not response.json()['done']:
-            response = requests.get(DOMAIN + endpoint + response.json()['nextRecordsUrl'], headers=headers)
+        print("Response from Salesforce:", response.json())
+
+        if 'totalSize' in response.json() and 'records' in response.json():
+            total_size = response.json()['totalSize']
             records.extend(response.json()['records'])
 
-        for record in records:
-            # Create an empty Account object
-            account = Account()
+            while 'nextRecordsUrl' in response.json():
+                next_records_url = response.json()['nextRecordsUrl']
+                response = requests.get(DOMAIN + next_records_url, headers=headers)
+                records.extend(response.json()['records'])
 
-            # Assign each field from the record to the corresponding attribute in the Account object
-            for key, value in record.items():
-                # Check if the key is an attribute of the Account class
-                if hasattr(account, key):
-                    # Check if the current column is a
-                    # Special handling for 'SLAExpirationDate__c'
-                    if key == 'SLAExpirationDate__c' and value is not None:
-                        # Convert the value to a Python datetime object
-                        value = parse(value)
+            for record in records:
+                # Create an empty Account object
+                account = Account()
 
-                    # Check if the current column is a DateTime column
-                    elif isinstance(getattr(Account, key).property.columns[0].type, DateTime) and value is not None:
-                        # Convert the value to a Python datetime object
-                        value = parse(value)
+                # Assign each field from the record to the corresponding attribute in the Account object
+                for key, value in record.items():
+                    # Check if the key is an attribute of the Account class
+                    if hasattr(account, key):
+                        # Special handling for 'SLAExpirationDate__c'
+                        if key in ['CreatedDate', 'SLAExpirationDate__c', 'LastModifiedDate', 'LastViewedDate',
+                                   'LastReferencedDate'] and value is not None:
+                            value = parse(value)
+                        # Check if the current column is a DateTime column
+                        elif isinstance(getattr(Account, key).property.columns[0].type, DateTime) and value is not None:
+                            value = parse(value)
 
-                    setattr(account, key, value)
+                        setattr(account, key, value)
 
-            # Check if the record already exists
-            existing_account = Account.query.filter_by(Id=account.Id).first()
-            # If the record doesn't exist, insert it
-            if existing_account is None:
-                try:
-                    db.session.add(account)
-                    db.session.commit()
-                except Exception as e:
-                    # Optionally log the error and rollback the transaction
-                    db.session.rollback()
-                    print(f"Error inserting account: {e}")
+                # Check if the record already exists
+                existing_account = Account.query.filter_by(Id=account.Id).first()
+                # If the record doesn't exist, insert it
+                if existing_account is None:
+                    try:
+                        db.session.add(account)
+                        db.session.commit()
+                    except Exception as e:
+                        # Optionally log the error and rollback the transaction
+                        db.session.rollback()
+                        print(f"Error inserting account: {e}")
 
-        return {'record_size': total_size, 'records': records}
+            return {'record_size': total_size, 'records': records}
+        else:
+            return {"error": "Unexpected response format from Salesforce"}
+    except Exception as e:
+        print("Exception in get_data function:", str(e))
+        return {"error": "An error occurred while retrieving data"}
+
+
+@app.route('/add_account', methods=['POST'])
+@login_required
+def add_account():
+    # Parse JSON data from the request
+    data = request.json
+    name = data['name']
+    street = data['street']
+    city = data['city']
+    state = data['state']
+    zip = data['zip']
+
+    # Your token and other code...
+    token = tokens()
+    token = token['access_token']
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/account"
+    payload = json.dumps({
+        "Name": name,
+        "BillingStreet": street,
+        "BillingCity": city,
+        "BillingState": state,
+        "BillingPostalCode": zip
+    })
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+    print(response.text)
+    if response.status_code == 201:
+        # print('Account successfully added')
+        get_data()
+        return jsonify({"success": True})
     else:
-        return {"error": "Unexpected response format from Salesforce"}
+        # print('Error adding account')
+        return jsonify({"success": False})
 
 
 def soql_query():
