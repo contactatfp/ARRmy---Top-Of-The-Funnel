@@ -1,10 +1,10 @@
 
     document.querySelector('[data-bs-target="#viewContactModal"]').addEventListener('click', function() {
     // Fetch data or perform any other action required before showing the modal
-
-    // Example: set the contact name and account
-    document.getElementById('contactName').textContent = 'Sample Contact Name';
-    document.getElementById('contactAccount').textContent = 'Sample Account Name';
+    //     get the account.Name from the list of accounts for this specific contact
+    document.getElementById('contactAccount').textContent = 'Account: ' + document.getElementById("accountName").textContent;
+        document.getElementById('contactAccount').textContent = 'Account: ' ;
+        document.getElementById('contactName').textContent = 'Last Call Date: ';
 
     // This example sets static content, but you can replace this with dynamic content fetched from your server
 });
@@ -53,6 +53,9 @@
     document.getElementById("logCallButton").addEventListener("click", function() {
         // Logic to log a call goes here.
         // This is just an example. You need to replace it with the actual logic for logging a call.
+        //     get the account.Name from the list of accounts for this specific contact
+
+
         alert("Log a call for: " + document.getElementById("contactName").textContent);
 
         // Hide the modal

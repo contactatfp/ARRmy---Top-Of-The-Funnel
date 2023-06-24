@@ -17,8 +17,8 @@
             <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Billing City</th>
-                <th scope="col">Contact</th>
                 <th scope="col">Billing Country</th>
+                <th scope="col">Menu</th>
             </tr>
             </thead>
             <tbody>
@@ -26,11 +26,17 @@
                 <tr>
                     <td>{{ account.Name }}</td>
                     <td>{{ account.BillingCity, account.BillingState  }}</td>
+                    <td>{{ account.BillingCountry }}</td>
                     <td><button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#viewContactModal">
-                        View Contact Details
+{#                        menu icon#}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                            <path d="M7.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0
+                            3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0
+                            0 3 0z"/>
+                        </svg>
                     </button>
                     </td>
-                    <td>{{ account.BillingCountry }}</td>
+
                 </tr>
             {% endfor %}
             </tbody>
