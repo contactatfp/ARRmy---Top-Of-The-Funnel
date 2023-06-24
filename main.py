@@ -272,7 +272,6 @@ def add_account():
     state = data['state']
     zip = data['zip']
 
-    # Your token and other code...
     token = tokens()
     token = token['access_token']
     url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/account"
@@ -302,6 +301,54 @@ def soql_query():
     # Make sure the query is properly formatted without the '+' characters
     soql_query = "SELECT FIELDS (All) FROM Account LIMIT 200"
     return soql_query
+
+
+@app.route('/contacts', methods=['GET'])
+def contacts():
+    response = fetch_contacts()
+    contacts = response["data"]["uiapi"]["query"]["Contact"]["edges"]
+    return render_template('contacts.html', contacts=contacts)
+
+
+def fetch_contacts():
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
+
+    payload = json.dumps({
+        "query": """query contactsByTheirAccountName {
+                        uiapi {
+                            query {
+                                Contact(orderBy: { Account: { Name: { order: DESC } } }) {
+                                    edges {
+                                        node {
+                                            Id
+                                            Name {
+                                                value
+                                            }
+                                            Account {
+                                                Name {
+                                                    value
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }""",
+        "variables": {}
+    })
+
+    token = tokens()
+    token = token['access_token']
+
+    headers = {
+        'X-Chatter-Entity-Encoding': 'false',
+        'Content-Type': 'application/json',
+        'Authorization': f"Bearer {token}",
+    }
+    response = requests.post(url, headers=headers, data=payload)
+
+    return response.json()
 
 
 if __name__ == '__main__':

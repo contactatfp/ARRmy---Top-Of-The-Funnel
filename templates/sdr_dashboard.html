@@ -17,7 +17,7 @@
             <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Billing City</th>
-                <th scope="col">Billing State</th>
+                <th scope="col">Contact</th>
                 <th scope="col">Billing Country</th>
             </tr>
             </thead>
@@ -25,13 +25,40 @@
             {% for account in accounts %}
                 <tr>
                     <td>{{ account.Name }}</td>
-                    <td>{{ account.BillingCity }}</td>
-                    <td>{{ account.BillingState }}</td>
+                    <td>{{ account.BillingCity, account.BillingState  }}</td>
+                    <td><button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#viewContactModal">
+                        View Contact Details
+                    </button>
+                    </td>
                     <td>{{ account.BillingCountry }}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+
+        <div class="modal fade" id="viewContactModal" tabindex="-1" aria-labelledby="viewContactModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="viewContactModalLabel">Contact Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Add content to display contact details here -->
+                        <div class="mb-3">
+                            <strong>Name:</strong> <span id="contactName"></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Account:</strong> <span id="contactAccount"></span>
+                        </div>
+                        <!-- Log a Call button -->
+                        <button type="button" class="btn btn-success" id="logCallButton">Log a Call</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
         <!-- Modal -->
         <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
@@ -73,44 +100,5 @@
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
-    <script>
-        document.getElementById("add-account-form").addEventListener("submit", function(event) {
-            event.preventDefault();
-            const name = document.getElementById("name").value;
-            const street = document.getElementById("street").value;
-            const city = document.getElementById("city").value;
-            const state = document.getElementById("state").value;
-            const zip = document.getElementById("zip").value;
-
-            // Call add_account with the form values
-            fetch("/add_account", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ name, street, city, state, zip }),
-            })
-                .then(response => {
-                    console.log("Response status: ", response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert("Account added successfully");
-                        // Hide the modal using Bootstrap's jQuery-based method
-                        $('#addAccountModal').modal('hide');
-                        // Reload the page to show the new account
-                        location.reload();
-                    } else {
-                        alert("Error adding account");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching data: ", error);
-                    $('#addAccountModal').modal('hide');
-                });
-        });
-
-    </script>
-
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 {% endblock %}
