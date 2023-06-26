@@ -1,4 +1,6 @@
 import enum
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -113,3 +115,147 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return str(self.id)
+
+
+class AlertType(enum.Enum):
+    manager_comment = "Manager Comment"
+    marketing_comment = "Marketing Comment"
+    channel_comment = "Channel Comment"
+    sdr_comment = "SDR Comment"
+    new_event = "New Event"
+    account_change = "Account Change"
+    in_the_news = "In the News"
+
+
+class Alert(db.Model):
+    __tablename__ = 'alert'
+
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.Enum(AlertType))
+    message = db.Column(db.String)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'))
+
+    user = db.relationship('User', backref=db.backref('alerts', lazy=True))
+
+    def __repr__(self):
+        return f'<Alert {self.alert_type}: {self.message}>'
+
+
+# New Model for Event
+class Event(db.Model):
+    __tablename__ = 'event'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+    location = db.Column(db.String)
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String, db.ForeignKey('users.id'))
+
+    created_by_user = db.relationship('User', backref=db.backref('events', lazy=True))
+
+    def __repr__(self):
+        return f'<Event {self.name}>'
+
+
+# New Model for Interaction
+class InteractionType(enum.Enum):
+    call = "Call"
+    email = "Email"
+    meeting = "Meeting"
+
+
+class Interaction(db.Model):
+    __tablename__ = 'interaction'
+
+    id = db.Column(db.Integer, primary_key=True)
+    interaction_type = db.Column(db.Enum(InteractionType))
+    description = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    account_id = db.Column(db.String, db.ForeignKey('account.Id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.id'))
+
+    account = db.relationship('Account', backref=db.backref('interactions', lazy=True))
+    user = db.relationship('User', backref=db.backref('interactions', lazy=True))
+
+    def __repr__(self):
+        return f'<Interaction {self.interaction_type} with Account {self.account_id} by User {self.user_id}>'
+
+
+# New Model for Comment
+class Comment(db.Model):
+    __tablename__ = 'comment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'))
+
+    user = db.relationship('User', backref=db.backref('comments', lazy=True))
+
+    def __repr__(self):
+        return f'<Comment by User {self.user_id}: {self.content}>'
+
+
+class Contact(db.Model):
+    __tablename__ = 'contact'
+
+    Id = db.Column(db.String, primary_key=True)
+    IsDeleted = db.Column(db.Boolean)
+    MasterRecordId = db.Column(db.String)
+    AccountId = db.Column(db.String, db.ForeignKey('account.Id'))
+    LastName = db.Column(db.String)
+    FirstName = db.Column(db.String)
+    Salutation = db.Column(db.String)
+    Name = db.Column(db.String)
+    MailingStreet = db.Column(db.String)
+    MailingCity = db.Column(db.String)
+    MailingState = db.Column(db.String)
+    MailingPostalCode = db.Column(db.String)
+    MailingCountry = db.Column(db.String)
+    MailingLatitude = db.Column(db.Float)
+    MailingLongitude = db.Column(db.Float)
+    MailingGeocodeAccuracy = db.Column(db.String)
+    Phone = db.Column(db.String)
+    Fax = db.Column(db.String)
+    MobilePhone = db.Column(db.String)
+    HomePhone = db.Column(db.String)
+    OtherPhone = db.Column(db.String)
+    AssistantPhone = db.Column(db.String)
+    ReportsToId = db.Column(db.String)
+    Email = db.Column(db.String)
+    Title = db.Column(db.String)
+    Department = db.Column(db.String)
+    AssistantName = db.Column(db.String)
+    LeadSource = db.Column(db.String)
+    Birthdate = db.Column(db.Date)
+    Description = db.Column(db.String)
+    OwnerId = db.Column(db.String)
+    CreatedDate = db.Column(db.DateTime)
+    CreatedById = db.Column(db.String)
+    LastModifiedDate = db.Column(db.DateTime)
+    LastModifiedById = db.Column(db.String)
+    SystemModstamp = db.Column(db.DateTime)
+    LastActivityDate = db.Column(db.Date)
+    LastCURequestDate = db.Column(db.Date)
+    LastCUUpdateDate = db.Column(db.Date)
+    LastViewedDate = db.Column(db.Date)
+    LastReferencedDate = db.Column(db.Date)
+    EmailBouncedReason = db.Column(db.String)
+    EmailBouncedDate = db.Column(db.Date)
+    IsEmailBounced = db.Column(db.Boolean)
+    PhotoUrl = db.Column(db.String)
+    Jigsaw = db.Column(db.String)
+    JigsawContactId = db.Column(db.String)
+    CleanStatus = db.Column(db.String)
+    IndividualId = db.Column(db.String)
+    Level__c = db.Column(db.String)
+    Languages__c = db.Column(db.String)
+
+    def __repr__(self):
+        return f'<Contact {self.Name}>'
+

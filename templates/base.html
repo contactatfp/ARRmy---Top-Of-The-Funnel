@@ -11,7 +11,7 @@
 
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">Salesforce App</a>
+    <a class="navbar-brand" href="{{ url_for('index') }}">Salesforce App</a>
     <div class="collapse navbar-collapse">
         <ul class="navbar-nav mr-auto">
             {% if current_user.is_authenticated %}
@@ -21,7 +21,9 @@
                 <li class="nav-item">
 
                     <a class="nav-link" href="{{ url_for('contacts') }}">Contacts</a>
-                <li class="nav-item">
+{#                shift the logout nav item all the way to the right#}
+
+                <li class="nav-item ml-auto">
                     <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
 
                 </li>

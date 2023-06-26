@@ -27,14 +27,12 @@
                     <td>{{ account.Name }}</td>
                     <td>{{ account.BillingCity, account.BillingState  }}</td>
                     <td>{{ account.BillingCountry }}</td>
-                    <td><button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#viewContactModal">
-{#                        menu icon#}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
-                            <path d="M7.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0
-                            3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0
-                            0 3 0z"/>
-                        </svg>
-                    </button>
+                    <td>
+                        <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 16 18">
+                                <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
+                            </svg>
+                        </button>
                     </td>
 
                 </tr>
@@ -50,13 +48,29 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Add content to display contact details here -->
-                        <div class="mb-3">
-                            <strong>Name:</strong> <span id="contactName"></span>
-                        </div>
                         <div class="mb-3">
                             <strong>Account:</strong> <span id="contactAccount"></span>
                         </div>
+
+                        <div class="mb-3">
+                            <label for="callSubject" class="form-label">Call Subject</label>
+                            <input type="text" class="form-control" id="callSubject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="callDescription" class="form-label">Call Description</label>
+                            <input type="text" class="form-control" id="callDescription" required>
+                        </div>
+{#                        add dropdown for contacts from the account#}
+                        <div class="mb-3">
+                            <label for="contact" class="form-label">Contact</label>
+                            <select class="form-select" id="contact" required>
+                                <option selected disabled value="">Select a Contact</option>
+                                {% for contact in contacts %}
+                                    <option value="{{ contact.id }}">{{ contact.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <!-- Log a Call button -->
                         <button type="button" class="btn btn-success" id="logCallButton">Log a Call</button>
                     </div>

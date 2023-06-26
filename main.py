@@ -7,7 +7,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from sqlalchemy import DateTime
 
 from app.forms import SignupForm, LoginForm
-from app.models import db, User, RoleEnum, init_db, Account
+from app.models import db, User, RoleEnum, init_db, Account, Contact
 from flask_migrate import Migrate
 
 app = Flask(__name__)
@@ -28,6 +28,8 @@ login_manager.login_view = 'login'
 
 with open('config.json') as f:
     config = json.load(f)
+
+DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 
 
 @login_manager.user_loader
@@ -146,9 +148,6 @@ def sdr_dashboard():
     return "Access denied", 403
 
 
-DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
-
-
 def tokens():
     try:
         payload = {
@@ -209,7 +208,7 @@ def get_data():
         endpoint = '/services/data/v58.0/query/'
         records = []
 
-        params = {'q': soql_query()}
+        params = {'q': soql_query("SELECT FIELDS(All) FROM Account LIMIT 200")}
         response = requests.get(DOMAIN + endpoint, headers=headers, params=params)
 
         print("Response from Salesforce:", response.json())
@@ -297,46 +296,54 @@ def add_account():
         return jsonify({"success": False})
 
 
-def soql_query():
+def soql_query(query):
     # Make sure the query is properly formatted without the '+' characters
-    soql_query = "SELECT FIELDS (All) FROM Account LIMIT 200"
+    soql_query = query.replace('+', ' ')
     return soql_query
 
 
 @app.route('/contacts', methods=['GET'])
 def contacts():
     response = fetch_contacts()
-    contacts = response["data"]["uiapi"]["query"]["Contact"]["edges"]
+    contacts = []
+
+# Iterate through each item in the data
+    for item in response['records']:
+        # Extract the attributes from item based on fields defined in models.py
+        contact = {
+            'Id': item.get('Id'),
+            'AccountId': item.get('AccountId'),
+            'LastName': item.get('LastName'),
+            'FirstName': item.get('FirstName'),
+            'Salutation': item.get('Salutation'),
+            'Name': item.get('Name'),
+            'MailingStreet': item.get('MailingStreet'),
+            'MailingCity': item.get('MailingAddress', {}).get('city') if item.get('MailingAddress') else None,
+            'MailingState': item.get('MailingAddress', {}).get('state') if item.get('MailingAddress') else None,
+            'MailingPostalCode': item.get('MailingAddress', {}).get('postalCode') if item.get('MailingAddress') else None,
+            'MailingCountry': item.get('MailingAddress', {}).get('country') if item.get('MailingAddress') else None,
+
+            'Phone': item.get('Phone'),
+            'Fax': item.get('Fax'),
+            'MobilePhone': item.get('MobilePhone'),
+            'Email': item.get('Email'),
+            'Title': item.get('Title'),
+            'Department': item.get('Department'),
+            'AssistantName': item.get('AssistantName'),
+            'Birthdate': item.get('Birthdate'),
+            'OwnerId': item.get('OwnerId'),
+            'CreatedDate': item.get('CreatedDate'),
+            'LastModifiedDate': item.get('LastModifiedDate')
+        }
+        # Append the contact object to the contacts list
+        contacts.append(contact)
     return render_template('contacts.html', contacts=contacts)
 
 
 def fetch_contacts():
-    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
 
-    payload = json.dumps({
-        "query": """query contactsByTheirAccountName {
-                        uiapi {
-                            query {
-                                Contact(orderBy: { Account: { Name: { order: DESC } } }) {
-                                    edges {
-                                        node {
-                                            Id
-                                            Name {
-                                                value
-                                            }
-                                            Account {
-                                                Name {
-                                                    value
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }""",
-        "variables": {}
-    })
+    endpoint = '/services/data/v58.0/query/'
+    url = DOMAIN + endpoint
 
     token = tokens()
     token = token['access_token']
@@ -346,9 +353,88 @@ def fetch_contacts():
         'Content-Type': 'application/json',
         'Authorization': f"Bearer {token}",
     }
-    response = requests.post(url, headers=headers, data=payload)
+    response = requests.request("GET", url, headers=headers, params={'q': soql_query("SELECT+FIELDS(All)+FROM+Contact LIMIT 200")})
+    contact_data = response.json()
 
-    return response.json()
+
+    # Import contacts into the database
+    for record in contact_data['records']:
+
+            # Create a new Contact object with the data from the current record
+        contact = Contact(
+            Id=record['Id'],
+            AccountId=record['AccountId'],
+
+            )
+
+
+        if Contact.query.filter_by(Id=contact.Id).first() is None:
+                db.session.add(contact)
+
+    # Commit the changes
+    db.session.commit()
+
+
+    return contact_data
+
+
+@app.route('/logACall', methods=['POST'])
+def logACall():
+    data = request.json
+    description = data.get('description')
+    subject = data.get('subject')
+    contactId = data.get('contactId')
+    token = tokens()
+    if token is None:
+        return {"error": "Failed to get Salesforce token"}
+
+    # print(token['access_token'])
+    access_token = token['access_token']
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    endpoint = '/services/data/v58.0/sobjects/Task'
+    body = {
+        "Subject": subject,
+        "Description": description,
+        "CallType": "Outbound",
+        "Status": "Closed",
+        "WhoID": contactId,
+        "TaskSubtype": "Call"
+    }
+
+    response = requests.post(DOMAIN + endpoint, headers=headers, data=json.dumps(body))
+    print(response.json())
+    if response.status_code == 201:
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False})
+
+
+@app.route('/getContacts', methods=['GET'])
+def get_contacts():
+    account_id = request.args.get('accountId')
+
+    # Query your database or API to get contacts associated with the account_id
+    # This is a placeholder. You'll need to implement this based on how your data is stored.
+    # account_name = Account.query.filter_by(Id=account_id).first().Name
+    contacts = Contact.query.filter_by(AccountId=account_id).all()
+
+    # Convert the Contact objects to dictionaries
+    contacts_list = [convert_contact_to_dict(contact) for contact in contacts]
+
+    # Return contacts in JSON format
+    return jsonify(contacts_list)
+
+
+def convert_contact_to_dict(contact):
+    return {
+        "Id": contact.Id,
+        "Name": contact.Name,
+        # Add other fields here...
+    }
 
 
 if __name__ == '__main__':
