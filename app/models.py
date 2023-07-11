@@ -178,6 +178,7 @@ class Interaction(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     account_id = db.Column(db.String, db.ForeignKey('account.Id'))
     user_id = db.Column(db.String, db.ForeignKey('users.id'))
+    contactId = db.Column(db.String, db.ForeignKey('contact.Id'))
 
     account = db.relationship('Account', backref=db.backref('interactions', lazy=True))
     user = db.relationship('User', backref=db.backref('interactions', lazy=True))

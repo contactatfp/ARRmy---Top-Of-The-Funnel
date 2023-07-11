@@ -29,7 +29,7 @@
                     <td>{{ account.BillingCountry }}</td>
                     <td>
                         <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 16 18">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
                                 <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
                             </svg>
                         </button>
@@ -43,36 +43,38 @@
         <div class="modal fade" id="viewContactModal" tabindex="-1" aria-labelledby="viewContactModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="viewContactModalLabel">Contact Details</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <strong>Account:</strong> <span id="contactAccount"></span>
+                    <div class="log_a_call">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="viewContactModalLabel">Contact Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <strong>Account:</strong> <span id="contactAccount"></span>
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="callSubject" class="form-label">Call Subject</label>
-                            <input type="text" class="form-control" id="callSubject" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="callDescription" class="form-label">Call Description</label>
-                            <input type="text" class="form-control" id="callDescription" required>
-                        </div>
-{#                        add dropdown for contacts from the account#}
-                        <div class="mb-3">
-                            <label for="contact" class="form-label">Contact</label>
-                            <select class="form-select" id="contact" required>
-                                <option selected disabled value="">Select a Contact</option>
-                                {% for contact in contacts %}
-                                    <option value="{{ contact.id }}">{{ contact.Name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label for="callSubject" class="form-label">Call Subject</label>
+                                <input type="text" class="form-control" id="callSubject" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="callDescription" class="form-label">Call Description</label>
+                                <input type="text" class="form-control" id="callDescription" required>
+                            </div>
+                            {#                        add dropdown for contacts from the account#}
+                            <div class="mb-3">
+                                <label for="contact" class="form-label">Contact</label>
+                                <select class="form-select" id="contact" required>
+                                    <option selected disabled value="">Select a Contact</option>
+                                    {% for contact in contacts %}
+                                        <option value="{{ contact.id }}">{{ contact.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
-                        <!-- Log a Call button -->
-                        <button type="button" class="btn btn-success" id="logCallButton">Log a Call</button>
+                            <!-- Log a Call button -->
+                            <button type="button" class="btn btn-success" id="logCallButton">Log a Call</button>
+                        </div>
                     </div>
                 </div>
             </div>

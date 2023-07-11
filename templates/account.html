@@ -1,0 +1,32 @@
+{% extends base.html %}
+{% block content %}
+
+{#account name in an h1 tag, then under it will be a table like sdr_dashboard, but only for this specific account#}
+{#    account is passed into the page so, it will have access to the account specifics#}
+{#    add in a column that lists the last task completed on the account#}
+<h1>Account Name</h1>
+<table>
+    <tr>
+        <th>Account Name</th>
+        <th>Account ID</th>
+        <th>Account Owner</th>
+        <th>Account Type</th>
+        <th>Account Status</th>
+        <th>Account Created</th>
+        <th>Account Last Modified</th>
+        <th>Last Task Completed</th>
+    </tr>
+    <tr>
+        <td>Account Name</td>
+        <td>Account ID</td>
+        <td>Account Owner</td>
+        <td>Account Type</td>
+        <td>Account Status</td>
+        <td>Account Created</td>
+        <td>Account Last Modified</td>
+        <td>Last Task Completed</td>
+    </tr>
+</table>
+
+    {% endblock %}
+

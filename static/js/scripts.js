@@ -78,7 +78,9 @@ document.addEventListener("DOMContentLoaded", function(event) {
             body: JSON.stringify({
                 contactId: contactId,
                 subject: callSubject,
-                description: callDescription
+                description: callDescription,
+                accountId: currentAccountId,
+
             }),
         })
             .then(response => {

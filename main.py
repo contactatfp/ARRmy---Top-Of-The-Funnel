@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import requests
 from dateutil.parser import parse
@@ -7,7 +8,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from sqlalchemy import DateTime
 
 from app.forms import SignupForm, LoginForm
-from app.models import db, User, RoleEnum, init_db, Account, Contact
+from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction
 from flask_migrate import Migrate
 
 app = Flask(__name__)
@@ -146,6 +147,14 @@ def sdr_dashboard():
     if current_user.role == RoleEnum.sdr:
         return render_template('sdr_dashboard.html', accounts=accounts)
     return "Access denied", 403
+
+@app.route('/account/<id>')
+@login_required
+def account(id):
+    account = Account.query.filter_by(id=id).first()
+    contacts = Contact.query.filter_by(account_id=id).all()
+    interactions = Interaction.query.filter_by(account_id=id).all()
+    return render_template('account.html', account=account, contacts=contacts, interactions=interactions)
 
 
 def tokens():
@@ -364,8 +373,19 @@ def fetch_contacts():
         contact = Contact(
             Id=record['Id'],
             AccountId=record['AccountId'],
+            LastName=record['LastName'],
+            FirstName=record['FirstName'],
+            Salutation=record['Salutation'],
+            Name=record['Name'],
+            MailingStreet=record['MailingStreet'],
+            MailingCity=record['MailingCity'],
+            MailingState=record['MailingState'],
+            MailingPostalCode=record['MailingPostalCode'],
+            Phone=record['Phone'],
+            Email=record['Email']
 
             )
+
 
 
         if Contact.query.filter_by(Id=contact.Id).first() is None:
@@ -382,6 +402,7 @@ def fetch_contacts():
 def logACall():
     data = request.json
     description = data.get('description')
+    accountId = data.get('accountId')
     subject = data.get('subject')
     contactId = data.get('contactId')
     token = tokens()
@@ -407,6 +428,19 @@ def logACall():
 
     response = requests.post(DOMAIN + endpoint, headers=headers, data=json.dumps(body))
     print(response.json())
+
+    # add log a call to database under interactions
+    interaction = Interaction(
+        account_id=accountId,
+        description=description,
+        contactId=contactId,
+        timestamp=datetime.now(),
+        interaction_type="Call",
+        user_id=current_user.id
+    )
+    db.session.add(interaction)
+    db.session.commit()
+
     if response.status_code == 201:
         return jsonify({"success": True})
     else:
