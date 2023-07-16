@@ -155,11 +155,19 @@ class Event(db.Model):
     end_time = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.String, db.ForeignKey('users.id'))
+    audience = db.Column(db.String)
+    event_type = db.Column(db.String)
+    cost = db.Column(db.Float)
+    sponsor = db.Column(db.String)
+    expected_attendees = db.Column(db.Integer)
+    actual_attendees = db.Column(db.Integer)
+    marketing_channel = db.Column(db.String)
 
     created_by_user = db.relationship('User', backref=db.backref('events', lazy=True))
 
     def __repr__(self):
         return f'<Event {self.name}>'
+
 
 
 # New Model for Interaction

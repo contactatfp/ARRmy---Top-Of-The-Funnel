@@ -8,8 +8,9 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from sqlalchemy import DateTime
 
 from app.forms import SignupForm, LoginForm
-from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction
+from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event
 from flask_migrate import Migrate
+from app.forms import EventForm
 
 app = Flask(__name__)
 
@@ -143,10 +144,84 @@ def sales_dashboard():
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
     accounts = Account.query.all()
-    print(accounts)
+
+    def get_last_interaction(accountId):
+        interaction = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
+        return interaction
+
+    # def get_last_interaction(accountId):
+    #     date = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
+    #     current_date = datetime.now()
+    #     if date is None:
+    #         return None
+    #     # return the rounded number of days since the last interaction
+    #     return date.timestamp
+
     if current_user.role == RoleEnum.sdr:
-        return render_template('sdr_dashboard.html', accounts=accounts)
+        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction)
     return "Access denied", 403
+
+
+from datetime import datetime
+
+@app.route('/events_page')
+def events_page():
+    # Retrieve all events from the database
+    # with app.context
+    with app.app_context():
+        events = Event.query.all()
+
+    # Render the events page and pass the events to the template
+    return render_template('events_page.html', events=events)
+
+
+@app.route('/add_event', methods=['GET', 'POST'])
+def add_event():
+    form = EventForm()
+    if form.validate_on_submit():
+        # Add new event to the database here
+        # Then redirect to the events page or some other page
+        return redirect(url_for('events_page'))
+    return render_template('add_event.html', form=form)
+
+
+def time_since_last_interaction(last_interaction_timestamp):
+    now = datetime.now()
+    difference = now - last_interaction_timestamp
+    days_difference = difference.days
+
+    if days_difference == 0:
+        return 'Today'
+    elif days_difference < 7:
+        return f'{days_difference} days ago'
+    elif days_difference < 30:
+        weeks_difference = days_difference // 7
+        return f'{weeks_difference} weeks ago'
+    else:
+        months_difference = days_difference // 30
+        return f'{months_difference} months ago'
+
+
+app.jinja_env.filters['time_since'] = time_since_last_interaction
+
+
+@app.route('/interaction_details/<int:interaction_id>')
+def interaction_details(interaction_id):
+    interaction = Interaction.query.get_or_404(interaction_id)
+    account = Account.query.get(interaction.account_id)
+    contact = Contact.query.get(interaction.contactId)
+    return render_template('interaction_details.html', interaction=interaction, account=account, contact=contact,
+                           interaction_id=interaction_id)
+
+
+# @app.route('/interaction/<int:interaction_id>')
+# @login_required
+# def interaction_details(interaction_id):
+#     interaction = Interaction.query.get_or_404(interaction_id)
+#     account = Account.query.get(interaction.account_id)
+#     contact = Contact.query.get(interaction.contact_id)
+#     return render_template('interaction_details.html', interaction=interaction, account=account, contact=contact)
+
 
 @app.route('/account/<id>')
 @login_required
@@ -207,7 +282,6 @@ def get_data():
         if token is None:
             return {"error": "Failed to get Salesforce token"}
 
-        print(token['access_token'])
         access_token = token['access_token']
 
         headers = {
@@ -217,10 +291,10 @@ def get_data():
         endpoint = '/services/data/v58.0/query/'
         records = []
 
-        params = {'q': soql_query("SELECT FIELDS(All) FROM Account LIMIT 200")}
+        params = {'q': soql_query("SELECT+FIELDS(All) FROM Account LIMIT 200")}
         response = requests.get(DOMAIN + endpoint, headers=headers, params=params)
 
-        print("Response from Salesforce:", response.json())
+        # print("Response from Salesforce:", response.json())
 
         if 'totalSize' in response.json() and 'records' in response.json():
             total_size = response.json()['totalSize']
@@ -316,7 +390,7 @@ def contacts():
     response = fetch_contacts()
     contacts = []
 
-# Iterate through each item in the data
+    # Iterate through each item in the data
     for item in response['records']:
         # Extract the attributes from item based on fields defined in models.py
         contact = {
@@ -329,7 +403,8 @@ def contacts():
             'MailingStreet': item.get('MailingStreet'),
             'MailingCity': item.get('MailingAddress', {}).get('city') if item.get('MailingAddress') else None,
             'MailingState': item.get('MailingAddress', {}).get('state') if item.get('MailingAddress') else None,
-            'MailingPostalCode': item.get('MailingAddress', {}).get('postalCode') if item.get('MailingAddress') else None,
+            'MailingPostalCode': item.get('MailingAddress', {}).get('postalCode') if item.get(
+                'MailingAddress') else None,
             'MailingCountry': item.get('MailingAddress', {}).get('country') if item.get('MailingAddress') else None,
 
             'Phone': item.get('Phone'),
@@ -350,7 +425,6 @@ def contacts():
 
 
 def fetch_contacts():
-
     endpoint = '/services/data/v58.0/query/'
     url = DOMAIN + endpoint
 
@@ -362,14 +436,14 @@ def fetch_contacts():
         'Content-Type': 'application/json',
         'Authorization': f"Bearer {token}",
     }
-    response = requests.request("GET", url, headers=headers, params={'q': soql_query("SELECT+FIELDS(All)+FROM+Contact LIMIT 200")})
+    response = requests.request("GET", url, headers=headers,
+                                params={'q': soql_query("SELECT+FIELDS(All)+FROM+Contact LIMIT 200")})
     contact_data = response.json()
-
 
     # Import contacts into the database
     for record in contact_data['records']:
 
-            # Create a new Contact object with the data from the current record
+        # Create a new Contact object with the data from the current record
         contact = Contact(
             Id=record['Id'],
             AccountId=record['AccountId'],
@@ -384,18 +458,20 @@ def fetch_contacts():
             Phone=record['Phone'],
             Email=record['Email']
 
-            )
-
-
+        )
 
         if Contact.query.filter_by(Id=contact.Id).first() is None:
-                db.session.add(contact)
+            db.session.add(contact)
 
     # Commit the changes
     db.session.commit()
 
-
     return contact_data
+
+
+def id2Name(id):
+    account = Account.query.filter_by(Id=id).first()
+    return account.Name
 
 
 @app.route('/logACall', methods=['POST'])
@@ -423,7 +499,7 @@ def logACall():
         "CallType": "Outbound",
         "Status": "Closed",
         "WhoID": contactId,
-        "TaskSubtype": "Call"
+        "TaskSubtype": "call"
     }
 
     response = requests.post(DOMAIN + endpoint, headers=headers, data=json.dumps(body))
@@ -435,7 +511,7 @@ def logACall():
         description=description,
         contactId=contactId,
         timestamp=datetime.now(),
-        interaction_type="Call",
+        interaction_type="call",
         user_id=current_user.id
     )
     db.session.add(interaction)

@@ -16,7 +16,7 @@
             <thead>
             <tr>
                 <th scope="col">Name</th>
-                <th scope="col">Billing City</th>
+                <th scope="col">Last Interaction</th>
                 <th scope="col">Billing Country</th>
                 <th scope="col">Menu</th>
             </tr>
@@ -25,10 +25,16 @@
             {% for account in accounts %}
                 <tr>
                     <td>{{ account.Name }}</td>
-                    <td>{{ account.BillingCity, account.BillingState  }}</td>
+                    <td>{% set last_interaction = get_last_interaction(account.Id) %}
+                        {% if last_interaction != None %}
+                            <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="color: darkgrey; font-size: 12px">{{ last_interaction.timestamp|time_since }}</a>
+                        {% else %}
+                            :(
+                        {% endif %}</td>
                     <td>{{ account.BillingCountry }}</td>
                     <td>
-                        <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
+
+            <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
                                 <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
                             </svg>
