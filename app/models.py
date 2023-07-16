@@ -150,7 +150,8 @@ class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
-    location = db.Column(db.String)
+    # location = db.Column(db.String)
+    location = db.relationship('Address', backref='event', uselist=False)
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -168,6 +169,15 @@ class Event(db.Model):
     def __repr__(self):
         return f'<Event {self.name}>'
 
+
+class Address(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    street = db.Column(db.String(100))
+    city = db.Column(db.String(50))
+    state = db.Column(db.String(50))
+    zip_code = db.Column(db.String(10))
+    country = db.Column(db.String(50))
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'))
 
 
 # New Model for Interaction
@@ -267,4 +277,3 @@ class Contact(db.Model):
 
     def __repr__(self):
         return f'<Contact {self.Name}>'
-

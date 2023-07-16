@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         })
     });
 
-document.getElementById("add-account-form").addEventListener("click", function(event) {
+document.getElementById("add-event-form").addEventListener("submit", function(event) {
     event.preventDefault();
 
     const name = document.getElementById("name").value;
@@ -165,12 +165,26 @@ document.getElementById("add-account-form").addEventListener("click", function(e
 
 
 
-    fetch("/add_event", {  // replace '/add_event' with your own endpoint
+    fetch("/add_event", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, description, location, cost, actual_attendees, expected_attendees, audience, created_at, created_by, start_time, end_time, event_type, sponsor, marketing_channel /*, ... rest of your data here ... */ }),
+        body: JSON.stringify({
+            name: name,
+            description: description,
+            location: location,
+            start_time: start_time,
+            end_time: end_time,
+            audience: audience,
+            event_type: event_type,
+            cost: cost,
+            sponsor: sponsor,
+            expected_attendees: expected_attendees,
+            actual_attendees: actual_attendees,
+            marketing_channel: marketing_channel,
+            // ... rest of your data ...
+        }),
     })
         .then(response => {
             console.log("Response status: ", response.status);
@@ -187,6 +201,7 @@ document.getElementById("add-account-form").addEventListener("click", function(e
         .catch(error => {
             console.error("Error fetching data: ", error);
         });
+
 });
 
 

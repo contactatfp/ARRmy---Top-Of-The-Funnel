@@ -6,9 +6,10 @@ from dateutil.parser import parse
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import DateTime
-
+from sqlalchemy.orm import joinedload
+from sqlalchemy import and_
 from app.forms import SignupForm, LoginForm
-from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event
+from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address
 from flask_migrate import Migrate
 from app.forms import EventForm
 
@@ -138,38 +139,63 @@ def sales_dashboard():
         return render_template('sales_dashboard.html')
     return "Access denied", 403
 
+@app.route('/event/<event_city>')
+def event_list(event_city):
+    # Query the database to get the addresses that match the city, then use the address.event_id to get the event
+    addresses = Address.query.filter_by(city=event_city).all()
+    events = []
+    for address in addresses:
+        if address.event:
+            events.append(address.event)
+    return render_template('event_list.html', events=events)
+
+
+
 
 @app.route('/sdr_dashboard')
 @login_required
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
-    accounts = Account.query.all()
-
-    def get_last_interaction(accountId):
-        interaction = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
-        return interaction
-
-    # def get_last_interaction(accountId):
-    #     date = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
-    #     current_date = datetime.now()
-    #     if date is None:
-    #         return None
-    #     # return the rounded number of days since the last interaction
-    #     return date.timestamp
-
     if current_user.role == RoleEnum.sdr:
-        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction)
+        accounts = Account.query.all()
+        events = []
+
+        # Initialize an empty dictionary to store the number of events for each account
+        account_event_counts = {}
+
+        for account in accounts:
+            # Get the corresponding address based on the city
+            address = Address.query.filter_by(city=account.BillingCity).first()
+
+
+            # If the address exists and has an event
+            if address and address.event:
+                # Add the event count to the dictionary
+                if account.Id in account_event_counts:
+                    account_event_counts[account.Id] += 1
+                    events.append(address)
+                else:
+                    account_event_counts[account.Id] = 1
+                    events.append(address)
+
+        def get_last_interaction(accountId):
+            interaction = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
+            return interaction
+
+        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction, account_event_counts=account_event_counts, events=events)
     return "Access denied", 403
 
 
+
 from datetime import datetime
+
 
 @app.route('/events_page')
 def events_page():
     # Retrieve all events from the database
     # with app.context
     with app.app_context():
-        events = Event.query.all()
+        events = Event.query.options(joinedload(Event.location)).all()
 
     # Render the events page and pass the events to the template
     return render_template('events_page.html', events=events)
@@ -178,11 +204,155 @@ def events_page():
 @app.route('/add_event', methods=['GET', 'POST'])
 def add_event():
     form = EventForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
         # Add new event to the database here
         # Then redirect to the events page or some other page
+        data = request.form
+
+        # Extract data fields
+
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+
+        # Convert the date strings to datetime objects
+        start_time = datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M")
+        end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M")
+
+        street, city, state, country = parse_location(form.location.data)
+        address = Address(
+            street=street,
+            city=city,
+            state=state,
+            country=country
+        )
+        # db.session.add(address)
+        # db.session.commit()
+
+        event = Event(
+            name=form.name.data,
+            description=form.description.data,
+            start_time=start_time,
+            end_time=end_time,
+            audience=form.audience.data,
+            event_type=form.event_type.data,
+            location=address,
+            cost=form.cost.data,
+            created_by=current_user.id,
+            created_at=datetime.now(),
+            sponsor=form.sponsor.data,
+            expected_attendees=form.expected_attendees.data,
+            actual_attendees=form.actual_attendees.data,
+            marketing_channel=form.marketing_channel.data
+        )
+        db.session.add(event)
+        db.session.commit()
         return redirect(url_for('events_page'))
     return render_template('add_event.html', form=form)
+
+
+def parse_location(location_string):
+    print(f"Trying to parse: {location_string}")  # Add this line
+    components = location_string.split(',')
+
+    # Check if we have all the required components
+    if len(components) != 4:
+        raise ValueError("Invalid location string provided.")
+
+    street = components[0].strip()
+    city = components[1].strip()
+    state = components[2].strip()
+    country = components[3].strip()
+
+    return street, city, state, country
+
+
+
+
+
+
+def to_dict(self):
+    return {
+        'id': self.id,
+        'name': self.name,
+        'description': self.description,
+        'start_time': self.start_time,
+        'end_time': self.end_time,
+        'location': {
+            'street': self.location.street,
+            'city': self.location.city,
+            'state': self.location.state,
+            'country': self.location.country
+        },
+        'cost': self.cost,
+        'created_at': self.created_at,
+        'created_by': self.created_by,
+        'audience': self.audience,
+        'event_type': self.event_type,
+        'sponsor': self.sponsor,
+        'expected_attendees': self.expected_attendees,
+        'actual_attendees': self.actual_attendees,
+        'marketing_channel': self.marketing_channel
+    }
+
+
+def get_distance(loc1, loc2):
+    # Define the base URL for the Distance Matrix API
+    base_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+
+    # Define the parameters for the GET request
+    params = {
+        "origins": f"{loc1[0]},{loc1[1]}",
+        "destinations": f"{loc2[0]},{loc2[1]}",
+        "units": "imperial",
+        "key": config['google-maps-api'],
+    }
+
+    # Send the GET request
+    response = requests.get(base_url, params=params)
+
+    # Convert the response to JSON
+    data = response.json()
+
+    # Extract the distance from the JSON response
+    distance = data["rows"][0]["elements"][0]["distance"]["text"]
+
+    # Remove " mi" from the end of the distance string and convert it to a float
+    distance = float(distance[:-3])
+
+    return distance
+
+@app.route('/events_in_area', methods=['GET'])
+def get_events_in_area():
+    # Get the optional miles_from_event parameter
+    miles_from_event = request.args.get('miles_from_event', default=0, type=int)
+
+    # Get the list of accounts from the database
+    accounts = Account.query.all()
+
+    # This will store the final list of events
+    events_in_area = []
+
+    # Iterate over each account
+    for account in accounts:
+        # Get the corresponding address based on the city
+        address = Address.query.filter_by(city=account.BillingCity).first()
+
+        # If the address exists and the event exists
+        if address and address.event:
+            # If miles_from_event is specified, check the distance
+            if miles_from_event > 0:
+                distance = get_distance((account.BillingLatitude, account.BillingLongitude),
+                                        (address.event.location.latitude, address.event.location.longitude))
+
+                # If the event is within the specified range, add it to the list
+                if distance <= miles_from_event:
+                    events_in_area.append(address.event)
+            else:
+                # If miles_from_event is not specified, simply add the event to the list
+                events_in_area.append(address.event)
+
+    # Convert the list of events to JSON and return it
+    return jsonify([event.to_dict() for event in events_in_area])
 
 
 def time_since_last_interaction(last_interaction_timestamp):

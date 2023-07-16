@@ -16,11 +16,11 @@
             </ul>
 
             <!-- Add real-time validation -->
-            <form method="POST" id="eventForm">
+            <form method="POST" id="eventForm" class="animate__animated animate__slideInUp">
                 {{ form.hidden_tag() }}
 
                 <!-- Step 1 -->
-                <div id="step-1" class="">
+                <div id="step-1" class="" data-aos="fade-up">
                     <!-- Add tooltips/popovers -->
                     <div class="mb-3">
                         {{ form.name.label(class="form-label") }}
@@ -39,16 +39,16 @@
                 </div>
 
                 <!-- Step 2 -->
-                <div id="step-2" class="">
+                <div id="step-2" class="" data-aos="fade-up">
                     <!-- Add tooltips/popovers -->
                     <div class="mb-3">
                         {{ form.start_time.label(class="form-label") }}
-                        {{ form.start_time(class="form-control", data_bs_toggle="tooltip", title="Enter the start time of the event.") }}
+                        <input type="datetime-local" name="start_time" class="form-control" data-bs-toggle="tooltip" title="Enter the start time of the event.">
                     </div>
 
                     <div class="mb-3">
                         {{ form.end_time.label(class="form-label") }}
-                        {{ form.end_time(class="form-control", data_bs_toggle="tooltip", title="Enter the end time of the event.") }}
+                        <input type="datetime-local" name="end_time" class="form-control" data-bs-toggle="tooltip" title="Enter the end time of the event.">
                     </div>
 
                     <div class="mb-3">
@@ -63,7 +63,7 @@
                 </div>
 
                 <!-- Step 3 -->
-                <div id="step-3" class="">
+                <div id="step-3" class="" data-aos="fade-up">
                     <!-- Add tooltips/popovers -->
                     <div class="mb-3">
                         {{ form.cost.label(class="form-label") }}
@@ -92,11 +92,28 @@
 
                     <!-- Add gamification -->
                     <!-- Add visual cues and microinteractions -->
-                    <input type="submit" id="add-account-form" value="Add Event" class="btn btn-primary">
+                    <input type="submit" id="add-event-form" value="Add Event" class="btn btn-primary">
                 </div>
             </form>
         </div>
     </div>
+    <script>
+        AOS.init();
+    </script>
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALvzGan08futWJALi6bUMabkiQ69p5AO8&libraries=places&callback=initializeAutocomplete">
+    </script>
 
+    <!-- Initialize autocomplete for the 'location' input field -->
+    <script>
+        function initializeAutocomplete() {
+            var input = document.getElementById('location');
+            var autocomplete = new google.maps.places.Autocomplete(input, {
+                types: 'address'
+            });
+        }
+
+        google.maps.event.addDomListener(window, 'load', initializeAutocomplete);
+    </script>
 
 {% endblock %}

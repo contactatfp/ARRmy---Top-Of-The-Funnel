@@ -1,18 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="container">
-    <h2>Events</h2>
-    <a href="/add_event" class="btn btn-primary">Add Event</a>
-    <ul>
+    <div class="container mt-5 animate__animated animate__fadeIn">
+
+        <h2 class="mb-4">Events</h2>
+
+        <a href="/add_event" class="btn btn-primary mb-3 animate__animated animate__pulse animate__delay-1s animate__infinite">Add Event</a>
+
         {% for event in events %}
-            <li>
-                <h3>{{ event.name }}</h3>
-                <p>{{ event.description }}</p>
-                <p>Location: {{ event.location }}</p>
-                <p>Start Time: {{ event.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-            </li>
+            <div class="card mb-3 animate__animated animate__flipInX">
+                <div class="card-header">
+                    <h3>{{ event.name }}</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ event.description }}</p>
+                    <p class="card-text"><strong>Location:</strong> {{ event.location.street|default('N/A') }}, {{ event.location.city|default('N/A') }}, {{ event.location.state|default('N/A') }}, {{ event.location.country|default('N/A') }}</p>
+                    {% if event.start_time %}
+                        <p class="card-text"><strong>Start Time:</strong> {{ event.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% endif %}
+                    <a class="btn btn-primary" data-bs-toggle="collapse" href="#collapse{{ event.id }}" role="button" aria-expanded="false" aria-controls="collapse{{ event.id }}">Details</a>
+                </div>
+                <div class="collapse" id="collapse{{ event.id }}">
+                    <div class="card-body">
+                        <p><strong>End Time:</strong> {{ event.end_time.strftime('%Y-%m-%d %H:%M:%S') if event.end_time }}</p>
+                        <p><strong>Created At:</strong> {{ event.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p><strong>Created By:</strong> {{ event.created_by }}</p>
+                        <p><strong>Audience:</strong> {{ event.audience }}</p>
+                        <p><strong>Event Type:</strong> {{ event.event_type }}</p>
+                        <p><strong>Cost:</strong> {{ event.cost }}</p>
+                        <p><strong>Sponsor:</strong> {{ event.sponsor }}</p>
+                        <p><strong>Expected Attendees:</strong> {{ event.expected_attendees }}</p>
+                        <p><strong>Actual Attendees:</strong> {{ event.actual_attendees }}</p>
+                        <p><strong>Marketing Channel:</strong> {{ event.marketing_channel }}</p>
+                    </div>
+                </div>
+            </div>
         {% endfor %}
-    </ul>
+
     </div>
+
 {% endblock %}

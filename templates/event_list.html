@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        {% for event in events %}
+            <h1>{{ event.name }}</h1>
+            <p>{{ event.description }}</p>
+        {% endfor %}
+    </div>
+{% endblock %}
