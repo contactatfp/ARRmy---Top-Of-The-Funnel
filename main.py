@@ -1,17 +1,27 @@
+import csv
+import io
 import json
+import os
 from datetime import datetime
+from uuid import uuid4
 
 import requests
 from dateutil.parser import parse
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import DateTime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_
-from app.forms import SignupForm, LoginForm
-from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address
+from werkzeug.utils import secure_filename
+
+from app.forms import SignupForm, LoginForm, InvitationForm
+from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address, Invitation, \
+    InvitationStatus
 from flask_migrate import Migrate
 from app.forms import EventForm
+from flask import request
+import pandas as pd
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 
@@ -139,15 +149,16 @@ def sales_dashboard():
         return render_template('sales_dashboard.html')
     return "Access denied", 403
 
-@app.route('/event/<event_city>')
-def event_list(event_city):
-    # Query the database to get the addresses that match the city, then use the address.event_id to get the event
+@app.route('/event_list/<account_id>/<event_city>')
+def event_list(account_id, event_city):
+    account = Account.query.get(account_id)
     addresses = Address.query.filter_by(city=event_city).all()
     events = []
+
     for address in addresses:
         if address.event:
             events.append(address.event)
-    return render_template('event_list.html', events=events)
+    return render_template('event_list.html', events=events, account=account)
 
 
 
@@ -355,6 +366,53 @@ def get_events_in_area():
     return jsonify([event.to_dict() for event in events_in_area])
 
 
+@app.route('/invitation/create/<account_id>/<event_id>', methods=['GET', 'POST'])
+def create_invitation(account_id, event_id):
+    form = InvitationForm()
+
+    # Fetch the account
+    account = Account.query.get_or_404(account_id)
+
+    # Fetch the event
+    event = Event.query.get_or_404(event_id)
+
+    contacts = Contact.query.filter_by(AccountId=account.Id).all()
+    form.contact_id.choices = [(contact.Id, contact.Name) for contact in contacts]
+
+    if form.validate_on_submit():
+        invitation = Invitation(event_id=form.event_id.data,
+                                contact_id=form.contact_id.data,
+                                account_id=form.account_id.data,
+                                contact_title=form.contact_title.data,
+                                status=InvitationStatus[form.status.data])
+        db.session.add(invitation)
+        db.session.commit()
+        flash('Invitation created successfully', 'success')
+        return redirect(url_for('invitation_list'))
+
+    return render_template('create_invitation.html', title='Create Invitation', form=form, contacts=contacts, event=event)
+
+
+
+
+    # Add the new invitation to the database
+    db.session.add(invitation)
+    db.session.commit()
+
+    return jsonify({'message': 'Invitation created successfully'}), 201
+
+
+
+
+
+@app.route('/account/<string:account_id>', methods=['GET'])
+def account_details(account_id):
+    account = Account.query.get(account_id)
+    if account is None:
+        abort(404, description="Account not found")
+    return render_template('account_details.html', account=account)
+
+
 def time_since_last_interaction(last_interaction_timestamp):
     now = datetime.now()
     difference = now - last_interaction_timestamp
@@ -362,6 +420,8 @@ def time_since_last_interaction(last_interaction_timestamp):
 
     if days_difference == 0:
         return 'Today'
+    elif days_difference == 1:
+        return 'Yesterday'
     elif days_difference < 7:
         return f'{days_difference} days ago'
     elif days_difference < 30:
@@ -588,9 +648,53 @@ def contacts():
             'OwnerId': item.get('OwnerId'),
             'CreatedDate': item.get('CreatedDate'),
             'LastModifiedDate': item.get('LastModifiedDate')
+
         }
         # Append the contact object to the contacts list
         contacts.append(contact)
+    for contact in contacts:
+    # check if contact exists in database
+        existing_contact = Contact.query.filter_by(Id=contact['Id']).first()
+        # If the record doesn't exist, insert it
+        if existing_contact is None:
+            try:
+                db.session.add(contact)
+                db.session.commit()
+            except Exception as e:
+                # Optionally log the error and rollback the transaction
+                db.session.rollback()
+                print(f"Error inserting contact: {e}")
+        else:
+    #         update the contact
+            existing_contact.AccountId = contact['AccountId']
+            existing_contact.LastName = contact['LastName']
+            existing_contact.FirstName = contact['FirstName']
+            existing_contact.Salutation = contact['Salutation']
+            existing_contact.Name = contact['Name']
+            existing_contact.MailingStreet = contact['MailingStreet']
+            existing_contact.MailingCity = contact['MailingCity']
+            existing_contact.MailingState = contact['MailingState']
+            existing_contact.MailingPostalCode = contact['MailingPostalCode']
+            existing_contact.MailingCountry = contact['MailingCountry']
+            existing_contact.Phone = contact['Phone']
+            existing_contact.Fax = contact['Fax']
+            existing_contact.MobilePhone = contact['MobilePhone']
+            existing_contact.Email = contact['Email']
+            existing_contact.Title = contact['Title']
+            existing_contact.Department = contact['Department']
+            existing_contact.AssistantName = contact['AssistantName']
+
+    #         update the database
+            try:
+                db.session.commit()
+            except Exception as e:
+                # Optionally log the error and rollback the transaction
+                db.session.rollback()
+                print(f"Error updating contact: {e}")
+
+
+
+
     return render_template('contacts.html', contacts=contacts)
 
 
@@ -715,6 +819,118 @@ def convert_contact_to_dict(contact):
         "Name": contact.Name,
         # Add other fields here...
     }
+
+
+@app.route('/upload', methods=['GET', 'POST'])
+@login_required
+def upload():
+    filepath = 'data.csv'
+    df = pd.read_csv(filepath)
+    df = df.fillna("")
+    # Get token once outside the loop
+    token = tokens()['access_token']
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+
+    for _, row in df.iterrows():
+        # Check if the account exists
+        account = Account.query.filter_by(Name=row['Company Name']).first()
+
+        # If not, create a new account
+        if account is None:
+            # account = Account(
+            #     Name=row['Company Name'],
+            #     BillingStreet=row['Company Street Address'],
+            #     BillingCity=row['Company City'],
+            #     BillingState=row['Company State'],
+            #     BillingPostalCode=row['Company Zip Code'],
+            #     BillingCountry=row['Company Country'],
+            #     Phone=row['Company HQ Phone'],
+            #     Website=row['Website'],
+            #     Industry=row['Primary Industry'],
+            #     Description=row['All Sub-Industries'],
+            #     OwnerId=current_user.id,
+            #     CreatedDate=datetime.now(),
+            #     LastModifiedDate=datetime.now(),
+            #     LastModifiedById=current_user.id,
+            #     SystemModstamp=datetime.now()
+            # )
+            # db.session.add(account)
+            # # db.session.commit()
+
+            # Send data to Salesforce
+            url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/account"
+            payload = json.dumps({
+                "Name": row['Company Name'],
+                "BillingStreet": row['Company Street Address'],
+                "BillingCity": row['Company City'],
+                "BillingState": row['Company State'],
+                "BillingPostalCode": row['Company Zip Code'],
+                "BillingCountry": row['Company Country'],
+                "Phone": row['Company HQ Phone'],
+                "Website": row['Website'],
+                "Industry": row['Primary Industry'],
+                "Description": row['All Sub-Industries'],
+                "OwnerId": current_user.id
+
+            })
+
+            response = requests.post(url, headers=headers, data=payload)
+            newAccountURL= f"https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/query/?q=SELECT+Id+FROM+Account+WHERE+Name='{row['Company Name']}'"
+            response = requests.get(newAccountURL, headers=headers)
+            response_data = response.json()
+            account = response_data['records'][0]['Id']
+
+
+# # Create a new contact linked to the account
+        # contact = Contact(
+        #     AccountId=account.Id,  # Use the account.Id instead of 'ZoomInfo Company ID'
+        #     LastName=row['Last Name'],
+        #     FirstName=row['First Name'],
+        #     Name=row['First Name'] + ' ' + row['Last Name'],
+        #     Phone=row['Mobile phone'],
+        #     Title=row['Job Title'],
+        #     Email=row['Email Address']
+        # )
+        # if Contact.query.filter_by(Id=contact.Id).first() is None:
+        #     db.session.add(contact)
+
+
+        # Send contact data to Salesforce
+        url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/contact"
+        if Account.query.filter_by(Name=row['Company Name']).first() is not None:
+            payload = json.dumps({
+                "AccountId": account.Id,
+                "LastName": row['Last Name'],
+                "FirstName": row['First Name'],
+                "Title": row['Job Title'],
+                "Email": row['Email Address'],
+
+            })
+            response = requests.post(url, headers=headers, data=payload)
+        else:
+            payload = json.dumps({
+                "AccountId": account,
+                "LastName": row['Last Name'],
+                "FirstName": row['First Name'],
+                "Title": row['Job Title'],
+                "Email": row['Email Address'],
+            })
+            response = requests.post(url, headers=headers, data=payload)
+    # db.session.commit()
+    return jsonify({"success": True})
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':

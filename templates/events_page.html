@@ -4,8 +4,17 @@
     <div class="container mt-5 animate__animated animate__fadeIn">
 
         <h2 class="mb-4">Events</h2>
+            
+            {% if events|length == 0 %}
+                <div class="alert alert-info" role="alert">
+                    No events found.
+                </div>
+            {% endif %}
+    
+        {% if current_user.role == 'marketing' %}
+            <a href="/add_event" class="btn btn-primary mb-3 animate__animated animate__pulse animate__delay-1s animate__infinite">Add Event</a>
+        {% endif %} 
 
-        <a href="/add_event" class="btn btn-primary mb-3 animate__animated animate__pulse animate__delay-1s animate__infinite">Add Event</a>
 
         {% for event in events %}
             <div class="card mb-3 animate__animated animate__flipInX">

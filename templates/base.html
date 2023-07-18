@@ -28,7 +28,11 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('events_page') }}">Events</a>
                 </li>
-                <li class="nav-item ml-auto">
+            {% endif %}
+        </ul>
+        <ul class="navbar-nav ml-auto">
+            {% if current_user.is_authenticated %}
+                <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
                 </li>
             {% else %}
@@ -43,9 +47,12 @@
     </div>
 </nav>
 
+
+
 <!-- Content -->
 <div>
     {% block content %}{% endblock %}
+    <br><br>
 </div>
 
 <!-- Add Bootstrap JS and jQuery -->

@@ -86,6 +86,32 @@ class Account(db.Model):
         return f'<Account {self.Name}>'
 
 
+class InvitationStatus(enum.Enum):
+    open_invite = "Open Invite"
+    attending = "Attending"
+    not_attending = "Not Attending"
+
+
+class Invitation(db.Model):
+    __tablename__ = 'invitation'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'))  # foreign key to Event table
+    contact_id = db.Column(db.String, db.ForeignKey('contact.Id'))  # foreign key to Contact table
+    account_id = db.Column(db.String, db.ForeignKey('account.Id'))  # foreign key to Account table
+    contact_title = db.Column(db.String)  # new column for contact's title
+    status = db.Column(db.Enum(InvitationStatus), default=InvitationStatus.open_invite)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    event = db.relationship('Event', backref=db.backref('invitations', lazy=True))
+    contact = db.relationship('Contact', backref=db.backref('invitations', lazy=True))
+    account = db.relationship('Account', backref=db.backref('invitations', lazy=True))
+
+    def __repr__(self):
+        return f'<Invitation {self.id} for Event {self.event_id} to Contact {self.contact_id}>'
+
+
 class RoleEnum(enum.Enum):
     admin = "admin"
     sales_rep = "sales_rep"

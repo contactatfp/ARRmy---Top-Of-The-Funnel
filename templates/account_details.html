@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container mt-5 animate__animated animate__fadeIn">
+        <h2 class="mb-4">Account Details</h2>
+
+        <div class="card mb-3 animate__animated animate__flipInX">
+            <div class="card-header">
+                <h3>{{ account.Name }}</h3>
+            </div>
+            <div class="card-body">
+                <p class="card-text"><strong>Type:</strong> {{ account.Type }}</p>
+                <p class="card-text"><strong>Billing Address:</strong> {{ account.BillingStreet }}, {{ account.BillingCity }}, {{ account.BillingState }}, {{ account.BillingPostalCode }}, {{ account.BillingCountry }}</p>
+                <p class="card-text"><strong>Phone:</strong> {{ account.Phone }}</p>
+                <p class="card-text"><strong>Fax:</strong> {{ account.Fax }}</p>
+                <p class="card-text"><strong>Website:</strong> {{ account.Website }}</p>
+                <p class="card-text"><strong>Industry:</strong> {{ account.Industry }}</p>
+                <p class="card-text"><strong>Annual Revenue:</strong> {{ account.AnnualRevenue }}</p>
+                <p class="card-text"><strong>Number Of Employees:</strong> {{ account.NumberOfEmployees }}</p>
+                <p class="card-text"><strong>Description:</strong> {{ account.Description }}</p>
+                <p class="card-text"><strong><a href="#">Contacts:</a></strong> </p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

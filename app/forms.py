@@ -39,3 +39,14 @@ class EventForm(FlaskForm):
     marketing_channel = StringField('Marketing Channel', validators=[Optional()])
 
     submit = SubmitField('Create Event')
+
+
+class InvitationForm(FlaskForm):
+    event_id = StringField('Event ID', validators=[DataRequired()])
+    contact_id = StringField('Contact ID', validators=[DataRequired()])
+    account_id = StringField('Account ID', validators=[DataRequired()])
+    contact_title = StringField('Contact Title', validators=[DataRequired()])
+    status = StringField('Status', validators=[DataRequired()])
+
+    submit = SubmitField('Create Invitation')
+

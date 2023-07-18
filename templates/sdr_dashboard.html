@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+    <br><br>
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>Welcome to the SDR Dashboard</h1>
@@ -24,17 +25,18 @@
             <tbody>
             {% for account in accounts %}
                 <tr>
-                    <td>{{ account.Name }}</td>
-                    <td style="color: darkgrey; font-size: 12px;">{% set last_interaction = get_last_interaction(account.Id) %}
+                   <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
+                    <td style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
                         {% if last_interaction != None %}
-                            <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="color: darkgrey; font-size: 12px">{{ last_interaction.timestamp|time_since }}</a>
+                            <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
                         {% else %}
                             :(
                         {% endif %}</td>
                         {% if account.BillingCity is not none %}
-                            <td><a href="{{ url_for('event_list', event_city=account.BillingCity) }}" style="color: darkgrey; font-size: 12px">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a></td>
+                            <td><a href="{{ url_for('event_list', account_id=account.Id, event_city=account.BillingCity) }}" style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a>
+                            </td>
                         {% else %}
-                            <td style="color: darkgrey; font-size: 12px">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
+                            <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
                         {% endif %}
                     <td>
 
