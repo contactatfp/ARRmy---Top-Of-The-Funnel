@@ -45,6 +45,49 @@ with open('config.json') as f:
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 
 
+@app.route('/rank_contact/<contact_id>', methods=['GET'])
+def rank_contact(contact_id):
+    rank_dict = {
+        "None": 1,
+        "Executive": 2,
+        "Manager": 3,
+        "Senior Executive": 4,
+        "Director": 5,
+        "Head": 6,
+        "Senior Partner": 7,
+        "Vice": 8,  # This will cover all Vice President roles
+        "President": 9,
+        "COO": 10,
+        "CTO": 11,
+        "CIO": 12,
+        "CSO": 13,
+        "CFO": 14,
+        "CEO": 15,
+        "Chief": 15,  # This will cover all Chief roles
+    }
+
+    # Query the specific contact from the database using the contact_id
+    contact = Contact.query.get(contact_id)
+
+    if contact is not None:
+        job_title = contact.JobTitle if contact.JobTitle else ""  # Use an empty string if JobTitle is None
+
+        # Default rank is 0 if no key phrase exists in the job title
+        rank = 0
+
+        for key in rank_dict.keys():
+            if key in job_title:
+                # Assign the highest rank if the job title contains multiple key phrases
+                rank = max(rank, rank_dict[key])
+
+        # Update the contact JobRank field
+        contact.JobRank = rank
+
+        # Commit the change to the database
+        db.session.commit()
+
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
@@ -149,6 +192,7 @@ def sales_dashboard():
         return render_template('sales_dashboard.html')
     return "Access denied", 403
 
+
 @app.route('/event_list/<account_id>/<event_city>')
 def event_list(account_id, event_city):
     account = Account.query.get(account_id)
@@ -159,8 +203,6 @@ def event_list(account_id, event_city):
         if address.event:
             events.append(address.event)
     return render_template('event_list.html', events=events, account=account)
-
-
 
 
 @app.route('/sdr_dashboard')
@@ -178,7 +220,6 @@ def sdr_dashboard():
             # Get the corresponding address based on the city
             address = Address.query.filter_by(city=account.BillingCity).first()
 
-
             # If the address exists and has an event
             if address and address.event:
                 # Add the event count to the dictionary
@@ -190,12 +231,13 @@ def sdr_dashboard():
                     events.append(address)
 
         def get_last_interaction(accountId):
-            interaction = Interaction.query.filter_by(account_id=accountId).order_by(Interaction.timestamp.desc()).first()
+            interaction = Interaction.query.filter_by(account_id=accountId).order_by(
+                Interaction.timestamp.desc()).first()
             return interaction
 
-        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction, account_event_counts=account_event_counts, events=events)
+        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
+                               account_event_counts=account_event_counts, events=events)
     return "Access denied", 403
-
 
 
 from datetime import datetime
@@ -277,10 +319,6 @@ def parse_location(location_string):
     return street, city, state, country
 
 
-
-
-
-
 def to_dict(self):
     return {
         'id': self.id,
@@ -331,6 +369,7 @@ def get_distance(loc1, loc2):
     distance = float(distance[:-3])
 
     return distance
+
 
 @app.route('/events_in_area', methods=['GET'])
 def get_events_in_area():
@@ -390,19 +429,14 @@ def create_invitation(account_id, event_id):
         flash('Invitation created successfully', 'success')
         return redirect(url_for('invitation_list'))
 
-    return render_template('create_invitation.html', title='Create Invitation', form=form, contacts=contacts, event=event)
-
-
-
+    return render_template('create_invitation.html', title='Create Invitation', form=form, contacts=contacts,
+                           event=event)
 
     # Add the new invitation to the database
     db.session.add(invitation)
     db.session.commit()
 
     return jsonify({'message': 'Invitation created successfully'}), 201
-
-
-
 
 
 @app.route('/account/<string:account_id>', methods=['GET'])
@@ -636,7 +670,6 @@ def contacts():
             'MailingPostalCode': item.get('MailingAddress', {}).get('postalCode') if item.get(
                 'MailingAddress') else None,
             'MailingCountry': item.get('MailingAddress', {}).get('country') if item.get('MailingAddress') else None,
-
             'Phone': item.get('Phone'),
             'Fax': item.get('Fax'),
             'MobilePhone': item.get('MobilePhone'),
@@ -653,7 +686,7 @@ def contacts():
         # Append the contact object to the contacts list
         contacts.append(contact)
     for contact in contacts:
-    # check if contact exists in database
+        # check if contact exists in database
         existing_contact = Contact.query.filter_by(Id=contact['Id']).first()
         # If the record doesn't exist, insert it
         if existing_contact is None:
@@ -665,7 +698,7 @@ def contacts():
                 db.session.rollback()
                 print(f"Error inserting contact: {e}")
         else:
-    #         update the contact
+            #         update the contact
             existing_contact.AccountId = contact['AccountId']
             existing_contact.LastName = contact['LastName']
             existing_contact.FirstName = contact['FirstName']
@@ -684,16 +717,13 @@ def contacts():
             existing_contact.Department = contact['Department']
             existing_contact.AssistantName = contact['AssistantName']
 
-    #         update the database
+            #         update the database
             try:
                 db.session.commit()
             except Exception as e:
                 # Optionally log the error and rollback the transaction
                 db.session.rollback()
                 print(f"Error updating contact: {e}")
-
-
-
 
     return render_template('contacts.html', contacts=contacts)
 
@@ -706,7 +736,6 @@ def fetch_contacts():
     token = token['access_token']
 
     headers = {
-        'X-Chatter-Entity-Encoding': 'false',
         'Content-Type': 'application/json',
         'Authorization': f"Bearer {token}",
     }
@@ -730,7 +759,7 @@ def fetch_contacts():
             MailingState=record['MailingState'],
             MailingPostalCode=record['MailingPostalCode'],
             Phone=record['Phone'],
-            Email=record['Email']
+            Email=record['Email'],
 
         )
 
@@ -777,7 +806,7 @@ def logACall():
     }
 
     response = requests.post(DOMAIN + endpoint, headers=headers, data=json.dumps(body))
-    print(response.json())
+
 
     # add log a call to database under interactions
     interaction = Interaction(
@@ -878,13 +907,12 @@ def upload():
             })
 
             response = requests.post(url, headers=headers, data=payload)
-            newAccountURL= f"https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/query/?q=SELECT+Id+FROM+Account+WHERE+Name='{row['Company Name']}'"
+            newAccountURL = f"https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/query/?q=SELECT+Id+FROM+Account+WHERE+Name='{row['Company Name']}'"
             response = requests.get(newAccountURL, headers=headers)
             response_data = response.json()
             account = response_data['records'][0]['Id']
 
-
-# # Create a new contact linked to the account
+        # # Create a new contact linked to the account
         # contact = Contact(
         #     AccountId=account.Id,  # Use the account.Id instead of 'ZoomInfo Company ID'
         #     LastName=row['Last Name'],
@@ -896,7 +924,6 @@ def upload():
         # )
         # if Contact.query.filter_by(Id=contact.Id).first() is None:
         #     db.session.add(contact)
-
 
         # Send contact data to Salesforce
         url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/contact"
@@ -921,16 +948,6 @@ def upload():
             response = requests.post(url, headers=headers, data=payload)
     # db.session.commit()
     return jsonify({"success": True})
-
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

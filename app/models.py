@@ -300,6 +300,7 @@ class Contact(db.Model):
     IndividualId = db.Column(db.String)
     Level__c = db.Column(db.String)
     Languages__c = db.Column(db.String)
+    JobRank = db.Column(db.Integer)
 
     def __repr__(self):
         return f'<Contact {self.Name}>'
