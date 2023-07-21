@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, TextAreaField, DateTimeField, FloatField, IntegerField
+from wtforms import StringField, PasswordField, SubmitField, TextAreaField, DateTimeField, FloatField, IntegerField, \
+    SelectField
 from wtforms.validators import DataRequired, Length, EqualTo, Optional
 
 
@@ -30,7 +31,7 @@ class EventForm(FlaskForm):
     location = StringField('Location', validators=[DataRequired()])
     start_time = DateTimeField('Start Time', validators=[DataRequired()])
     end_time = DateTimeField('End Time', validators=[DataRequired()])
-    audience = StringField('Audience', validators=[Optional()])
+    audience = SelectField('Audience', choices=[('1', 'ALL'), ('2', 'MANAGER+'), ('3', 'VP+'),('4', 'C-SUITE')])
     event_type = StringField('Event Type', validators=[Optional()])
     cost = FloatField('Cost', validators=[Optional()])
     sponsor = StringField('Sponsor', validators=[Optional()])

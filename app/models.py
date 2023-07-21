@@ -183,6 +183,7 @@ class Event(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.String, db.ForeignKey('users.id'))
     audience = db.Column(db.String)
+
     event_type = db.Column(db.String)
     cost = db.Column(db.Float)
     sponsor = db.Column(db.String)

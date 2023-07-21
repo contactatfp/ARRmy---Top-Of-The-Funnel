@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import requests
 from dateutil.parser import parse
+from faker.generator import random
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import DateTime
@@ -948,6 +949,120 @@ def upload():
             response = requests.post(url, headers=headers, data=payload)
     # db.session.commit()
     return jsonify({"success": True})
+
+@app.route('/uploadInteractions', methods=['GET', 'POST'])
+@login_required
+def generate_interaction_data():
+    num_rows = request.args.get('num_rows', default=100, type=int)
+
+    from faker import Faker
+    fake = Faker()
+    data = []
+
+    # Possible descriptions for the interactions
+    descriptions = ['Great call with', 'Follow-up with', 'Introductory call with', 'Closing call with', 'Check-in with']
+    account_ids = [account.Id for account in Account.query.all()]
+    contact_ids = [contact.Id for contact in Contact.query.all()]
+    for _ in range(num_rows):
+        timestamp = fake.date_time_between(start_date='-1y', end_date='now') # random date in the last year
+        description = random.choice(descriptions) + ' ' + fake.name()
+
+        row = {
+            'interaction_type': 'call',
+            'description': description,
+            'timestamp': timestamp,
+            'account_id': random.choice(account_ids),
+            'user_id': current_user.id,
+            'contactId': random.choice(contact_ids)
+        }
+        data.append(row)
+
+    #     add to database
+        interaction = Interaction(
+            interaction_type=row['interaction_type'],
+            description=row['description'],
+            timestamp=row['timestamp'],
+            account_id=row['account_id'],
+            user_id=row['user_id'],
+            contactId=row['contactId']
+        )
+        db.session.add(interaction)
+        db.session.commit()
+
+    return jsonify(data)
+
+
+@app.route('/uploadEvents', methods=['GET', 'POST'])
+@login_required
+def generate_event_data():
+    num_rows = request.args.get('num_rows', default=100, type=int)
+
+    from faker import Faker
+    fake = Faker()
+    data = []
+
+    # Possible event types
+    event_types = ['Conference', 'Webinar', 'Meetup', 'Workshop', 'Seminar']
+
+    # Fetch unique BillingCity values from Account model
+    billing_cities = list(set(account.BillingCity for account in Account.query.all()))
+
+    for _ in range(num_rows):
+        start_time = fake.date_time_between(start_date='-1y', end_date='now') # random date in the last year
+        end_time = fake.date_time_between(start_date=start_time, end_date='+30d') # random date after start time
+        description = fake.sentence(nb_words=10)
+        name = fake.catch_phrase()
+
+        row = {
+            'name': name,
+            'description': description,
+            'start_time': start_time,
+            'end_time': end_time,
+            'created_by': current_user.id,
+            'audience': fake.catch_phrase(),
+            'event_type': random.choice(event_types),
+            'cost': fake.random_int(min=0, max=1000),
+            'sponsor': fake.company(),
+            'expected_attendees': fake.random_int(min=0, max=500),
+            'actual_attendees': fake.random_int(min=0, max=500),
+            'marketing_channel': fake.catch_phrase(),
+            'location': {
+                'city': random.choice(billing_cities),  # Randomly pick a city from the list
+                'country': fake.country(),
+                'state': fake.state(),
+                'zip_code': fake.zipcode(),
+                'street': fake.street_address()
+            }
+        }
+        data.append(row)
+
+        #     add to database
+        location = Address(**row['location'])  # Create Address object
+        db.session.add(location)
+        db.session.flush()  # This is needed to generate id for new Address
+
+        event = Event(
+            name=row['name'],
+            description=row['description'],
+            start_time=row['start_time'],
+            end_time=row['end_time'],
+            created_by=row['created_by'],
+            audience=row['audience'],
+            event_type=row['event_type'],
+            cost=row['cost'],
+            sponsor=row['sponsor'],
+            expected_attendees=row['expected_attendees'],
+            actual_attendees=row['actual_attendees'],
+            marketing_channel=row['marketing_channel'],
+            location=location  # Set location to the Address object
+        )
+        db.session.add(event)
+        db.session.commit()
+
+    return jsonify(data)
+
+
+
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 
 {% block content %}
 {#    add link to static/js.scritps.js#}
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{#    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>#}
 
     <div class="container mt-5">
         <h2 class="mb-4">Add Marketing Event</h2>
@@ -58,7 +58,7 @@
 
                     <div class="mb-3">
                         {{ form.event_type.label(class="form-label") }}
-                        {{ form.event_type(class="form-control", data_bs_toggle="tooltip", title="Enter the type of event.") }}
+                        {{ form.event_type(class="form-control", data_bs_toggle="tooltip", title="Select the target audience of the event.") }}
                     </div>
                 </div>
 

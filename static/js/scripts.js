@@ -125,15 +125,15 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
 
 
-    $(document).ready(function(){
-    $("#eventFormWizard").steps({
-        headerTag: "h3",
-        bodyTag: "section",
-        transitionEffect: "slideLeft",
-        autoFocus: true
-    });
-
-});
+//     $(document).ready(function(){
+//     $("#eventFormWizard").steps({
+//         headerTag: "h3",
+//         bodyTag: "section",
+//         transitionEffect: "slideLeft",
+//         autoFocus: true
+//     });
+//
+// });
 
 
 
@@ -161,8 +161,6 @@ document.getElementById("add-event-form").addEventListener("submit", function(ev
     const actual_attendees = document.getElementById("actual_attendees").value;
     const marketing_channel = document.getElementById("marketing_channel").value;
 
-    // ... rest of your values here ...
-
 
 
     fetch("/add_event", {
@@ -183,7 +181,7 @@ document.getElementById("add-event-form").addEventListener("submit", function(ev
             expected_attendees: expected_attendees,
             actual_attendees: actual_attendees,
             marketing_channel: marketing_channel,
-            // ... rest of your data ...
+
         }),
     })
         .then(response => {
@@ -207,3 +205,12 @@ document.getElementById("add-event-form").addEventListener("submit", function(ev
 
 
 
+document.addEventListener("DOMContentLoaded", function(event) {
+    $(document).ready(function() {
+        $('#myTable').DataTable({
+            "columnDefs": [
+                { "type": "num", targets: 1 }  // Assuming 'Age' is the second column and needs to be sorted numerically
+            ]
+        });
+    });
+});

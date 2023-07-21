@@ -11,9 +11,9 @@
                 </div>
             {% endif %}
     
-        {% if current_user.role == 'marketing' %}
+{#        {% if current_user.role == 'marketing' %}#}
             <a href="/add_event" class="btn btn-primary mb-3 animate__animated animate__pulse animate__delay-1s animate__infinite">Add Event</a>
-        {% endif %} 
+{#        {% endif %} #}
 
 
         {% for event in events %}
@@ -41,6 +41,11 @@
                         <p><strong>Expected Attendees:</strong> {{ event.expected_attendees }}</p>
                         <p><strong>Actual Attendees:</strong> {{ event.actual_attendees }}</p>
                         <p><strong>Marketing Channel:</strong> {{ event.marketing_channel }}</p>
+{#                        dropdown form item with 4 options#}
+                        <p><strong>Event Status:</strong> Hello </p>
+
+
+
                     </div>
                 </div>
             </div>
