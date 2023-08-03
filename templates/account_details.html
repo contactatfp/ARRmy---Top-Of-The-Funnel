@@ -6,20 +6,124 @@
 
         <div class="card mb-3 animate__animated animate__flipInX">
             <div class="card-header">
-                <h3>{{ account.Name }}</h3>
+                <h3 id="companyName" data-account-id="{{ account.Id }}">{{ account.Name }}</h3>
+
+                <!-- Tabbed navigation -->
+                <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                <li class="nav-item">
+                        <a class="nav-link active" id="company-info-tab" data-bs-toggle="tab" href="#company-info" role="tab" aria-controls="company-info" aria-selected="true">Company Info</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="company-news-tab" data-bs-toggle="tab" href="#company-news" role="tab" aria-controls="company-news" aria-selected="false">Company News</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="company-contacts-tab" data-bs-toggle="tab" href="#company-contacts" role="tab" aria-controls="company-contacts" aria-selected="false">Company Contacts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="recent-interactions-tab" data-bs-toggle="tab" href="#recent-interactions" role="tab" aria-controls="recent-interactions" aria-selected="false">Recent Interactions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="alerts-tab" data-bs-toggle="tab" href="#alerts" role="tab" aria-controls="alerts" aria-selected="false">Alerts</a>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
-                <p class="card-text"><strong>Type:</strong> {{ account.Type }}</p>
-                <p class="card-text"><strong>Billing Address:</strong> {{ account.BillingStreet }}, {{ account.BillingCity }}, {{ account.BillingState }}, {{ account.BillingPostalCode }}, {{ account.BillingCountry }}</p>
-                <p class="card-text"><strong>Phone:</strong> {{ account.Phone }}</p>
-                <p class="card-text"><strong>Fax:</strong> {{ account.Fax }}</p>
-                <p class="card-text"><strong>Website:</strong> {{ account.Website }}</p>
-                <p class="card-text"><strong>Industry:</strong> {{ account.Industry }}</p>
-                <p class="card-text"><strong>Annual Revenue:</strong> {{ account.AnnualRevenue }}</p>
-                <p class="card-text"><strong>Number Of Employees:</strong> {{ account.NumberOfEmployees }}</p>
-                <p class="card-text"><strong>Description:</strong> {{ account.Description }}</p>
-                <p class="card-text"><strong><a href="#">Contacts:</a></strong> </p>
+                <!-- Tab content -->
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="company-info" role="tabpanel" aria-labelledby="company-info-tab">
+                        <p class="card-text"><strong>Type:</strong> {{ account.Type }}</p>
+                        <p class="card-text"><strong>Billing Address:</strong> {{ account.BillingStreet }}, {{ account.BillingCity }}, {{ account.BillingState }}, {{ account.BillingPostalCode }}, {{ account.BillingCountry }}</p>
+                        <p class="card-text"><strong>Phone:</strong> {{ account.Phone }}</p>
+                        <p class="card-text"><strong>Fax:</strong> {{ account.Fax }}</p>
+                        <p class="card-text"><strong>Website:</strong> {{ account.Website }}</p>
+                        <p class="card-text"><strong>Industry:</strong> {{ account.Industry }}</p>
+                        <p class="card-text"><strong>Annual Revenue:</strong> {{ account.AnnualRevenue }}</p>
+                        <p class="card-text"><strong>Number Of Employees:</strong> {{ account.NumberOfEmployees }}</p>
+                        <p class="card-text"><strong>Description:</strong> {{ account.Description }}</p>
+                    </div>
+                    <div class="tab-pane fade" id="company-news" role="tabpanel" aria-labelledby="company-news-tab">
+                        <!-- Company news content (lorem ipsum) -->
+                        <p>Loading {{ account.Name }} News...</p>
+                    </div>
+                    <div class="tab-pane fade" id="company-contacts" role="tabpanel" aria-labelledby="company-contacts-tab">
+                        <!-- Company contacts content (lorem ipsum) -->
+                        <p>Loading {{ account.Name }} Contacts</p>
+                    </div>
+                    <div class="tab-pane fade" id="recent-interactions" role="tabpanel" aria-labelledby="recent-interactions-tab">
+                        <!-- Recent interactions content (lorem ipsum) -->
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                    </div>
+                    <div class="tab-pane fade" id="alerts" role="tabpanel" aria-labelledby="alerts-tab">
+                        <!-- Alerts content (lorem ipsum) -->
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    <!-- Additional JavaScript code -->
+    <script>
+        document.querySelectorAll('#myTab .nav-link').forEach(function(navLink) {
+            navLink.addEventListener('click', function() {
+                var tabId = this.getAttribute('id');
+                var companyName = document.getElementById('companyName').innerText;
+
+                switch (tabId) {
+                    case 'company-news-tab':
+                        // Make fetch request to /news endpoint
+                        fetch(`/news?company=${encodeURIComponent(companyName)}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.text();
+                            })
+                            .then(data => {
+                                // Update the "Company News" tab content with the returned data
+                                document.getElementById('company-news').innerHTML = data;
+                                console.log('Success: Company news retrieved');
+                            })
+                            .catch(error => {
+                                console.log('Error: Could not retrieve company news', error);
+                            });
+                        break;
+                    case 'company-contacts-tab':
+                        // Make fetch request to /company_contacts endpoint
+                        var accountId = document.getElementById('companyName').dataset.accountId;
+                        fetch(`/company_contacts/${accountId}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    console.log(response)
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log(data)
+                                // Update the "Company Contacts" tab content with the returned data
+                                var contactsContainer = document.getElementById('company-contacts');
+                                contactsContainer.innerHTML = ''; // Clear the container
+                                data.forEach(contact => {
+                                    var contactInfo = `<p>${contact.FirstName} ${contact.LastName}, ${contact.Email}, ${contact.Phone}</p>`;
+                                    contactsContainer.innerHTML += contactInfo;
+                                });
+                                console.log('Success: Company contacts retrieved');
+                            })
+                            .catch(error => {
+                                console.log('Error: Could not retrieve company contacts', error);
+                            });
+                        break;
+
+                    case 'recent-interactions-tab':
+                        // Do something for "Recent Interactions" tab
+                        break;
+                    case 'alerts-tab':
+                        // Do something for "Alerts" tab
+                        break;
+                    default:
+                    // Do something for "Company Info" tab (or any other tab)
+                }
+            });
+        });
+    </script>
 {% endblock %}

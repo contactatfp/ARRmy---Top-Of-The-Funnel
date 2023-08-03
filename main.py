@@ -1,10 +1,12 @@
 import csv
 import io
 import json
+import logging
 import os
 from datetime import datetime
 from uuid import uuid4
-
+from langchain.tools import Tool
+from langchain.utilities import GoogleSearchAPIWrapper
 import requests
 from dateutil.parser import parse
 from faker.generator import random
@@ -44,6 +46,7 @@ with open('config.json') as f:
     config = json.load(f)
 
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
+SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
@@ -86,7 +89,6 @@ def rank_contact(contact_id):
 
         # Commit the change to the database
         db.session.commit()
-
 
 
 @login_manager.user_loader
@@ -207,7 +209,7 @@ def event_list(account_id, event_city):
 
 
 @app.route('/sdr_dashboard')
-@login_required
+# @login_required
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
     if current_user.role == RoleEnum.sdr:
@@ -541,113 +543,73 @@ def get_user_token(username, pw):
         return None
 
 
+@app.route('/get_data', methods=['GET'])
+@login_required
 def get_data():
-    try:
-        token = tokens()
-        if token is None:
-            return {"error": "Failed to get Salesforce token"}
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
 
-        access_token = token['access_token']
+    for model, api_endpoint in [(Account, "account"), (Contact, "contact"), (Interaction, "interaction"),
+                                (Event, "event"), (Address, "address")]:
+        url = f"{DOMAIN}{SALESFORCE_API_ENDPOINT}{api_endpoint}"
+        response = create_api_request("GET", url, token['access_token'])
+        process_response(response, model)
 
-        headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Content-Type': 'application/json'
-        }
-        endpoint = '/services/data/v58.0/query/'
-        records = []
-
-        params = {'q': soql_query("SELECT+FIELDS(All) FROM Account LIMIT 200")}
-        response = requests.get(DOMAIN + endpoint, headers=headers, params=params)
-
-        # print("Response from Salesforce:", response.json())
-
-        if 'totalSize' in response.json() and 'records' in response.json():
-            total_size = response.json()['totalSize']
-            records.extend(response.json()['records'])
-
-            while 'nextRecordsUrl' in response.json():
-                next_records_url = response.json()['nextRecordsUrl']
-                response = requests.get(DOMAIN + next_records_url, headers=headers)
-                records.extend(response.json()['records'])
-
-            for record in records:
-                # Create an empty Account object
-                account = Account()
-
-                # Assign each field from the record to the corresponding attribute in the Account object
-                for key, value in record.items():
-                    # Check if the key is an attribute of the Account class
-                    if hasattr(account, key):
-                        # Special handling for 'SLAExpirationDate__c'
-                        if key in ['CreatedDate', 'SLAExpirationDate__c', 'LastModifiedDate', 'LastViewedDate',
-                                   'LastReferencedDate'] and value is not None:
-                            value = parse(value)
-                        # Check if the current column is a DateTime column
-                        elif isinstance(getattr(Account, key).property.columns[0].type, DateTime) and value is not None:
-                            value = parse(value)
-
-                        setattr(account, key, value)
-
-                # Check if the record already exists
-                existing_account = Account.query.filter_by(Id=account.Id).first()
-                # If the record doesn't exist, insert it
-                if existing_account is None:
-                    try:
-                        db.session.add(account)
-                        db.session.commit()
-                    except Exception as e:
-                        # Optionally log the error and rollback the transaction
-                        db.session.rollback()
-                        print(f"Error inserting account: {e}")
-
-            return {'record_size': total_size, 'records': records}
-        else:
-            return {"error": "Unexpected response format from Salesforce"}
-    except Exception as e:
-        print("Exception in get_data function:", str(e))
-        return {"error": "An error occurred while retrieving data"}
+    return jsonify({"success": True})
 
 
 @app.route('/add_account', methods=['POST'])
 @login_required
 def add_account():
-    # Parse JSON data from the request
     data = request.json
-    name = data['name']
-    street = data['street']
-    city = data['city']
-    state = data['state']
-    zip = data['zip']
+    url = f"{DOMAIN}{SALESFORCE_API_ENDPOINT}account"
 
     token = tokens()
-    token = token['access_token']
-    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/account"
-    payload = json.dumps({
-        "Name": name,
-        "BillingStreet": street,
-        "BillingCity": city,
-        "BillingState": state,
-        "BillingPostalCode": zip
-    })
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {token}'
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+
+    # Map input data to Salesforce fields
+    sf_data = {
+        "Name": data.get('name'),
+        "BillingStreet": data.get('street'),
+        "BillingCity": data.get('city'),
+        "BillingState": data.get('state'),
+        "BillingPostalCode": data.get('zip')
     }
-    response = requests.request("POST", url, headers=headers, data=payload)
-    print(response.text)
+
+    response = create_api_request("POST", url, token['access_token'], sf_data)
     if response.status_code == 201:
-        # print('Account successfully added')
         get_data()
         return jsonify({"success": True})
     else:
-        # print('Error adding account')
-        return jsonify({"success": False})
+        logging.error(f"Error adding account: {response.text}")
+        return jsonify({"success": False, "error": response.text})
 
 
 def soql_query(query):
     # Make sure the query is properly formatted without the '+' characters
     soql_query = query.replace('+', ' ')
     return soql_query
+
+
+@app.route('/company_contacts/<account_id>', methods=['GET'])
+def company_contacts(account_id):
+    def contact_to_dict(contact):
+        # if any of the fields are None, replace with empty string
+
+        return {
+
+            'FirstName': contact.FirstName or 'YOU_DONT_HAVE_A_FIRST_NAME',
+            'LastName': contact.LastName or 'YOU_DONT_HAVE_A_LAST_NAME',
+
+            'Email': contact.Email or 'YOU DONT HAVE AN EMAIL ADDRESS',
+            'Phone': contact.Phone or 'YOU_DONT_HAVE_A_PHONE_NUMBER',
+        }
+
+    contacts = Contact.query.filter_by(AccountId=account_id).all()
+
+    return [contact_to_dict(contact) for contact in contacts]
 
 
 @app.route('/contacts', methods=['GET'])
@@ -808,7 +770,6 @@ def logACall():
 
     response = requests.post(DOMAIN + endpoint, headers=headers, data=json.dumps(body))
 
-
     # add log a call to database under interactions
     interaction = Interaction(
         account_id=accountId,
@@ -950,6 +911,7 @@ def upload():
     # db.session.commit()
     return jsonify({"success": True})
 
+
 @app.route('/uploadInteractions', methods=['GET', 'POST'])
 @login_required
 def generate_interaction_data():
@@ -964,7 +926,7 @@ def generate_interaction_data():
     account_ids = [account.Id for account in Account.query.all()]
     contact_ids = [contact.Id for contact in Contact.query.all()]
     for _ in range(num_rows):
-        timestamp = fake.date_time_between(start_date='-1y', end_date='now') # random date in the last year
+        timestamp = fake.date_time_between(start_date='-1y', end_date='now')  # random date in the last year
         description = random.choice(descriptions) + ' ' + fake.name()
 
         row = {
@@ -977,7 +939,7 @@ def generate_interaction_data():
         }
         data.append(row)
 
-    #     add to database
+        #     add to database
         interaction = Interaction(
             interaction_type=row['interaction_type'],
             description=row['description'],
@@ -1008,8 +970,8 @@ def generate_event_data():
     billing_cities = list(set(account.BillingCity for account in Account.query.all()))
 
     for _ in range(num_rows):
-        start_time = fake.date_time_between(start_date='-1y', end_date='now') # random date in the last year
-        end_time = fake.date_time_between(start_date=start_time, end_date='+30d') # random date after start time
+        start_time = fake.date_time_between(start_date='-1y', end_date='now')  # random date in the last year
+        end_time = fake.date_time_between(start_date=start_time, end_date='+30d')  # random date after start time
         description = fake.sentence(nb_words=10)
         name = fake.catch_phrase()
 
@@ -1062,7 +1024,109 @@ def generate_event_data():
     return jsonify(data)
 
 
+@app.route('/news', methods=['GET', 'POST'])
+@login_required
+def news():
+    # get company name from request
+    company_name = request.args.get('company', default='', type=str)
 
+    import os
+
+    os.environ["GOOGLE_CSE_ID"] = "373a54e5d518e4761"
+    os.environ["GOOGLE_API_KEY"] = "AIzaSyCMiSE9lx29iSCvAi0zjJ_mqBizc-IgROM"
+
+    search = GoogleSearchAPIWrapper()
+
+    def top5_results(query):
+        return search.results(query, 5)
+
+    tool = Tool(
+        name="Google Search Snippets",
+        description="Search Google for recent results.",
+        func=top5_results,
+    )
+    answer = tool.run("Company News for: " + company_name)
+
+    formatted_response = ""
+    for item in answer:
+        formatted_response += f'<p><a href="{item["link"]}">{item["title"]}</a><br>{item["snippet"]}</p>'
+
+    return formatted_response
+
+
+def create_api_request(method, url, token, data=None):
+    """
+    Function to create and send an API request.
+    """
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+
+    response = requests.request(method, url, headers=headers, data=json.dumps(data))
+
+    return response
+
+
+def parse_dates(record, date_fields):
+    """
+    Function to parse date fields in a record.
+    """
+    for key, value in record.items():
+        if key in date_fields and value is not None:
+            record[key] = parse(value)
+
+    return record
+
+
+def process_response(response, model):
+    """
+    Function to process API response and save records to the database.
+    """
+    if response.status_code == 200:
+        data = response.json()
+        records = data.get('records', [])
+        for record in records:
+            record = parse_dates(record, ['CreatedDate', 'SLAExpirationDate__c', 'LastModifiedDate', 'LastViewedDate',
+                                          'LastReferencedDate'])
+            obj = model.query.filter_by(Id=record['Id']).first()
+            if obj is None:
+                try:
+                    db.session.add(model(**record))
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logging.error(f"Error inserting record: {e}")
+            else:
+                for key, value in record.items():
+                    setattr(obj, key, value)
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logging.error(f"Error updating record: {e}")
+
+        return {'record_size': len(records), 'records': records}
+    else:
+        logging.error(f"Unexpected response from API: {response.text}")
+        return {"error": "Unexpected response from API"}
+
+
+def process_dataframe(df, model, api_url, token):
+    """
+    Function to process a dataframe and upload records to the API and local database.
+    """
+    for _, row in df.iterrows():
+        response = create_api_request("POST", api_url, token, data=row.to_dict())
+        if response.status_code == 201:
+            try:
+                db.session.add(model(**row.to_dict()))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logging.error(f"Error inserting record: {e}")
+        else:
+            logging.error(f"Error adding record to API: {response.text}")
 
 
 if __name__ == '__main__':
