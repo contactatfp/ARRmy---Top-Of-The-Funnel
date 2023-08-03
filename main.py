@@ -47,6 +47,7 @@ with open('config.json') as f:
 
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
+SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
@@ -1054,13 +1055,84 @@ def news():
     return formatted_response
 
 
+@app.route('/salesforce/accounts', methods=['GET', 'POST'])
+def get_opps_for_account():
+    url = f"{DOMAIN}{SALESFORCE_API_OPPS}"
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+
+    query = """
+    query opportunitiesNotClosed {
+      uiapi {
+        query {
+          Opportunity(
+            where: {
+              not: {
+                or: [
+                  { StageName: { eq: "Closed Won" } }
+                  { StageName: { eq: "Closed Lost" } }
+                ]
+              }
+            }
+          ) {
+            edges {
+              node {
+                Id
+                Account {
+                  Name {
+                    value
+                  }
+                  Id
+                }
+                NextStep {
+                  value
+                }
+                CloseDate {
+                  value
+                  displayValue
+                }
+                Description {
+                  value
+                }
+                StageName {
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """
+
+
+    # Prepare the payload as a Python dictionary
+    payload = {"query": query, "variables": {}}
+
+    # Update the request to send JSON data
+    response = create_api_request("POST", url, token['access_token'], payload)
+    response_json = response.json()
+    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+
+    # Loop through each opportunity and print the desired information
+    for opp in opportunities:
+        account_name = opp["node"]["Account"]["Name"]["value"]
+        close_date = opp["node"]["CloseDate"]["value"]
+        stage_name = opp["node"]["StageName"]["value"]
+        print(f"Account Name: {account_name}, Close Date: {close_date}, Stage Name: {stage_name}")
+
+    return opportunities
+
+
 def create_api_request(method, url, token, data=None):
     """
     Function to create and send an API request.
     """
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {token}'
+        'Authorization': f'Bearer {token}',
+
     }
 
     response = requests.request(method, url, headers=headers, data=json.dumps(data))
