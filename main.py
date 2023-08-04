@@ -1055,7 +1055,7 @@ def news():
     return formatted_response
 
 
-@app.route('/salesforce/accounts', methods=['GET', 'POST'])
+@app.route('/salesforce/opps', methods=['GET', 'POST'])
 def get_opps_for_account():
     url = f"{DOMAIN}{SALESFORCE_API_OPPS}"
     token = tokens()
@@ -1122,7 +1122,7 @@ def get_opps_for_account():
         stage_name = opp["node"]["StageName"]["value"]
         print(f"Account Name: {account_name}, Close Date: {close_date}, Stage Name: {stage_name}")
 
-    return opportunities
+    return render_template('opportunities.html', opportunities=opportunities)
 
 
 def create_api_request(method, url, token, data=None):

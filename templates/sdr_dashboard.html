@@ -1,60 +1,65 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SDR Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap4.min.css">
+    <style>
+        .container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<br><br>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Welcome to the SDR Dashboard</h1>
+        <!-- Button to Open the Modal -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+            Add New Account
+        </button>
+    </div>
+    <p>Here you can view your sales metrics and manage your accounts.</p>
 
-
-{% block content %}
-    <br><br>
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>Welcome to the SDR Dashboard</h1>
-            <!-- Button to Open the Modal -->
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
-                Add New Account
-            </button>
-        </div>
-        <p>Here you can view your sales metrics and manage your accounts.</p>
-
-        <!-- Add your dashboard content here -->
-        <h2>Accounts</h2>
-        <table class="table table-striped table-bordered" style="width:100%" id="myTable">
-            <thead>
+    <!-- Add your dashboard content here -->
+    <h2>Accounts</h2>
+    <table class="table table-striped table-bordered" style="width:100%" id="myTable">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Last Interaction</th>
+            <th>Events</th>
+            <th>Menu</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for account in accounts %}
             <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Last Interaction</th>
-                <th scope="col">Events</th>
-                <th scope="col">Menu</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for account in accounts %}
-                <tr>
-                   <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
-                    <td style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
-                        {% if last_interaction != None %}
-                            <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
-                        {% else %}
-                            :(
-                        {% endif %}</td>
-                        {% if account.BillingCity is not none %}
-                            <td><a href="{{ url_for('event_list', account_id=account.Id, event_city=account.BillingCity) }}" style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a>
-                            </td>
-                        {% else %}
-                            <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
-                        {% endif %}
-                    <td>
-
-
-
+                <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
+                <td style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
+                    {% if last_interaction != None %}
+                        <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
+                    {% else %}
+                        :(
+                    {% endif %}</td>
+                {% if account.BillingCity is not none %}
+                    <td><a href="{{ url_for('event_list', account_id=account.Id, event_city=account.BillingCity) }}" style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a>
+                    </td>
+                {% else %}
+                    <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
+                {% endif %}
+                <td>
                     <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
-                                <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
-                            </svg>
-                        </button>
-                    </td>
-
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
         <div class="modal fade" id="viewContactModal" tabindex="-1" aria-labelledby="viewContactModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -135,29 +140,21 @@
             </div>
         </div>
 
-        <a href="{{ url_for('logout') }}">Logout</a>
-    </div>
 
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-        $(document).ready(function() {
-            $('.open-contact-modal').click(function() {
-                var accountId = $(this).data('account-id');
-                $('#contactAccount').text(accountId);
+        <!-- Script references -->
+        <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+        <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        <script>
+            $(document).ready(function() {
+                $('#myTable').DataTable({
+                    "order": [[ 0, "asc" ]], // Initially sort by the first column
+                    "pageLength": 10, // Show 10 rows per page
+                });
             });
-        });
-    </script>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bootstrap4.min.css">
-
-    <!-- jQuery, Popper.js, Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
-{% endblock %}
+        </script>
+    </div>
+</body>
+</html>

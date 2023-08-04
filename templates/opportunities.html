@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Salesforce Opportunities</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap4.min.css">
+    <style>
+        .container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Salesforce Opportunities</h1>
+    <table id="opportunities" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+        <tr>
+            <th>Account Name</th>
+            <th>Close Date</th>
+            <th>Stage Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for opportunity in opportunities %}
+            <tr>
+                <td>{{ opportunity['node']['Account']['Name']['value'] }}</td>
+                <td>{{ opportunity['node']['CloseDate']['value'] }}</td>
+                <td>{{ opportunity['node']['StageName']['value'] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#opportunities').DataTable({
+            "order": [[ 0, "asc" ]], // Initially sort by the first column
+            "pageLength": 10, // Show 10 rows per page
+        });
+    });
+</script>
+</body>
+</html>
