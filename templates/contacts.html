@@ -1,46 +1,68 @@
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{#<head>#}
+{#    <title>SDR Contacts</title>#}
+{#    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">#}
+{#    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs5/1.13.6/dataTables.bootstrap5.min.css" integrity="sha512-lh4coC5XUFMaH3vP6Xx6Rab4J0rm4ojKwQKZoawqk325K9e2PMGf2GZreDeYnetVTIoWpYsEphDS0Zy0QFYOFQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />#}
+{#    <style>#}
+{#        .container {#}
+{#            margin-top: 20px;#}
+{#        }#}
+{#    </style>#}
+{#</head>#}
+{#<body>#}
+
 {% extends "base.html" %}
 {% block content %}
-    <div class="container">
+<div class="container">
     <h1>Contacts</h1>
-    <div class="container">
-        <table id="myContactTable" class="table table-striped table-bordered" style="width:100%">
-            <thead>
+    <table id="myTable" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+        <tr>
+            <th>Contact Name</th>
+            <th>Account ID</th>
+            <th>Last Name</th>
+            <th>First Name</th>
+            <th>Mailing City</th>
+            <th>Mailing State</th>
+            <th>Mailing Postal Code</th>
+            <th>Mailing Country</th>
+            <th>Email</th>
+            <th>Phone</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for contact in contacts %}
             <tr>
-                <th>Contact Name</th>
-                <th>Account ID</th>
-                <th>Last Name</th>
-                <th>First Name</th>
-                <th>Mailing City</th>
-                <th>Mailing State</th>
-                <th>Mailing Postal Code</th>
-                <th>Mailing Country</th>
-                <th>Email</th>
-                <th>Phone</th>
+                <td>{{ contact['Name'] }}</td>
+                <td>{{ contact['AccountId'] }}</td>
+                <td>{{ contact['LastName'] }}</td>
+                <td>{{ contact['FirstName'] }}</td>
+                <td>{{ contact['MailingCity'] }}</td>
+                <td>{{ contact['MailingState'] }}</td>
+                <td>{{ contact['MailingPostalCode'] }}</td>
+                <td>{{ contact['MailingCountry'] }}</td>
+                <td>{{ contact['Email'] }}</td>
+                <td>{{ contact['Phone'] }}</td>
             </tr>
-            </thead>
-            <tbody>
-            {% for contact in contacts %}
-                <tr>
-                    <td>{{ contact['Name'] }}</td>
-                    <td>{{ contact['AccountId'] }}</td>
-                    <td>{{ contact['LastName'] }}</td>
-                    <td>{{ contact['FirstName'] }}</td>
-                    <td>{{ contact['MailingCity'] }}</td>
-                    <td>{{ contact['MailingState'] }}</td>
-                    <td>{{ contact['MailingPostalCode'] }}</td>
-                    <td>{{ contact['MailingCountry'] }}</td>
-                    <td>{{ contact['Email'] }}</td>
-                    <td>{{ contact['Phone'] }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    </div>
-    <script>
-        $(document).ready(function() {
-            $('#myContactTable').DataTable();
-        });
-    </script>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 
+<!-- Script references -->
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+<script>
+    $(document).ready(function() {
+        $('#myTable').DataTable({
+            "order": [[ 0, "asc" ]], // Initially sort by the first column
+            "pageLength": 10, // Show 10 rows per page
+        });
+    });
+</script>
 {% endblock %}
+
