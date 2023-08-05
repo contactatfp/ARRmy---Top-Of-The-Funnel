@@ -553,7 +553,7 @@ def get_data():
 
     for model, api_endpoint in [(Account, "account"), (Contact, "contact"), (Interaction, "interaction"),
                                 (Event, "event"), (Address, "address")]:
-        url = f"{DOMAIN}{SALESFORCE_API_ENDPOINT}{api_endpoint}"
+        url = f"{DOMAIN}/services/data/v58.0/queryAll/?q=SELECT+name,id+from+{api_endpoint}"
         response = create_api_request("GET", url, token['access_token'])
         process_response(response, model)
 
@@ -693,7 +693,7 @@ def contacts():
 
 
 def fetch_contacts():
-    endpoint = '/services/data/v58.0/query/'
+    endpoint = '/services/data/v58.0/queryAll/?q=SELECT+name,id,lastName, firstName,AccountId,mailingStreet, phone, email,Salutation,MailingPostalCode,MailingCity,MailingState+from+Contact'
     url = DOMAIN + endpoint
 
     token = tokens()
@@ -703,10 +703,8 @@ def fetch_contacts():
         'Content-Type': 'application/json',
         'Authorization': f"Bearer {token}",
     }
-    response = requests.request("GET", url, headers=headers,
-                                params={'q': soql_query("SELECT+FIELDS(All)+FROM+Contact LIMIT 200")})
+    response = requests.request("GET", url, headers=headers)
     contact_data = response.json()
-
     # Import contacts into the database
     for record in contact_data['records']:
 
@@ -1132,9 +1130,7 @@ def create_api_request(method, url, token, data=None):
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {token}',
-
     }
-
     response = requests.request(method, url, headers=headers, data=json.dumps(data))
 
     return response
@@ -1163,6 +1159,8 @@ def process_response(response, model):
                                           'LastReferencedDate'])
             obj = model.query.filter_by(Id=record['Id']).first()
             if obj is None:
+                # drop record['attributes'] as it is not a column in the database
+                record.pop('attributes', None)
                 try:
                     db.session.add(model(**record))
                     db.session.commit()
