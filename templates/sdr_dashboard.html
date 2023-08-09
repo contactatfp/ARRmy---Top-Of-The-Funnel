@@ -1,7 +1,29 @@
 {% extends "base.html" %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
 {% block content %}
+<style>
+    tbody tr:hover {
+        cursor: move;
+    }
+    .tooltip-inner {
+        max-width: 300px; /* Set a wider max-width if desired */
+        padding: 10px 15px; /* Adjust padding for larger tooltip */
+        background-color: #ffffff; /* Background color */
+        color: #3a3a3a;  /* Text color */
+        border-radius: 8px;  /* Rounded borders */
+        border: #3a3a3a solid 1px; /* Optional: Padding and border properties */
+        font-size: 1.2em; /* Bigger font */
+    }
 
+    /* Adjust arrow color to match tooltip background */
+    .tooltip.bs-tooltip-top .arrow::before, .tooltip.bs-tooltip-auto[x-placement^="top"] .arrow::before {
+        border-top-color: #333;
+    }
+
+
+
+</style>
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Welcome to the SDR Dashboard</h1>
@@ -14,7 +36,7 @@
 
     <!-- Add your dashboard content here -->
     <h2>Accounts</h2>
-    <table class="table table-striped table-bordered" style="width:100%" id="myTable">
+    <table class="table table-bordered" style="width:100%" id="myTable">
         <thead>
         <tr>
             <th>Name</th>
@@ -27,7 +49,7 @@
         {% for account in accounts %}
             <tr>
                 <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
-                <td style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
+                <td data-account-id="{{ account.Id }}" class="last-interaction-cell" style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
                     {% if last_interaction != None %}
                         <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
                     {% else %}
@@ -132,11 +154,24 @@
 
 
         <!-- Script references -->
-        <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+
         <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+{#        <script>#}
+{#            $(function () {#}
+{#                $('[data-toggle="tooltip"]').tooltip({#}
+{#                    html: true#}
+{#                })#}
+{#            });#}
+{##}
+{#        </script>#}
+
+
         <script>
             $(document).ready(function() {
                 $('#myTable').DataTable({
@@ -145,5 +180,75 @@
                 });
             });
         </script>
+        <script>
+            $(document).ready(function() {
+                $("table tbody").sortable({
+                    axis: 'y',
+                    handle: 'td',
+                    update: function(event, ui) {
+                        // You can perform actions here when the sorting has been updated
+                    }
+                });
+            });
+
+        </script>
+        <script>
+            $(document).ready(function() {
+                $('.last-interaction-cell').hover(function() {
+                    let accountId = $(this).data('account-id');
+                    let $thisCell = $(this);  // Capture the hovered cell
+
+                    // Hide all other tooltips
+                    $('.last-interaction-cell').tooltip('hide');
+
+                    // Fetch last 30-day interaction info
+                    $.get('/last30', { id: accountId }, function(data) {
+                        // Set custom attribute for tooltip content
+                        $thisCell.attr('data-tooltip-content', data);
+
+                        // Show the tooltip
+                        $thisCell.tooltip('show');
+                    });
+                }, function() {
+                    // Hide the tooltip when the mouse leaves the cell
+                    $(this).tooltip('hide');
+                }).tooltip({
+                    trigger: 'manual',
+                    html: true,  // Allow HTML in tooltip
+                    title: function() {
+                        return $(this).attr('data-tooltip-content');
+                    }
+                });
+            });
+        </script>
+{#        <script>#}
+{#            $(document).ready(function() {#}
+{#                $('.last-interaction-cell').hover(function() {#}
+{#                    let accountId = $(this).data('account-id');#}
+{##}
+{#                    // Fetch last 30-day interaction info#}
+{#                    $.get('/last30', { id: accountId }, function(data) {#}
+{#                        // Create an HTML template for the tooltip#}
+{#                        let tooltipContent = `#}
+{#                        <div>#}
+{#                            <strong>Last 30-day Interactions:</strong>#}
+{#                            <span>${data}</span>#}
+{#                        </div>#}
+{#                    `;#}
+{##}
+{#                        // Update tooltip content and show it#}
+{#                        $(this).attr('data-original-title', tooltipContent).tooltip('show');#}
+{#                    }.bind(this));#}
+{#                }, function() {#}
+{#                    // Hide the tooltip when the mouse leaves the cell#}
+{#                    $(this).tooltip('hide');#}
+{#                }).tooltip({#}
+{#                    trigger: 'manual',#}
+{#                    html: true  // Allow HTML in tooltip#}
+{#                });#}
+{#            });#}
+{##}
+{#        </script>#}
+
 </div>
 {% endblock %}

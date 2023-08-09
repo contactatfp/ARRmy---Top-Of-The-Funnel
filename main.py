@@ -10,7 +10,7 @@ from langchain.utilities import GoogleSearchAPIWrapper
 import requests
 from dateutil.parser import parse
 from faker.generator import random
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort, render_template_string
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import DateTime
 from sqlalchemy.orm import joinedload
@@ -692,6 +692,33 @@ def contacts():
     return render_template('contacts.html', contacts=contacts)
 
 
+@app.route('/last30')
+def last30():
+    account_id = request.args.get('id')
+    count = Interaction.query.filter_by(account_id=account_id).count()
+    if count == 0:
+        last_interaction_date = 'No Interactions'
+    else:
+        last_interaction_date = Interaction.query.filter_by(account_id=account_id).order_by(
+        Interaction.timestamp.desc()).first().timestamp
+
+
+    # Define the tooltip's HTML structure
+    tooltip_content = """
+    <div>
+        <strong>Last 30-day Interactions:</strong>
+        <span>{{ count }}</span>
+        <br>
+        <strong>Last Interaction Date:</strong>
+        <span>{{ last_interaction_date }}</span>
+        
+    </div>
+    """
+
+    # Render and return the tooltip content
+    return render_template_string(tooltip_content, count=count, last_interaction_date=last_interaction_date)
+
+
 def fetch_contacts():
     endpoint = '/services/data/v58.0/queryAll/?q=SELECT+name,id,lastName, firstName,AccountId,mailingStreet, phone, email,Salutation,MailingPostalCode,MailingCity,MailingState+from+Contact'
     url = DOMAIN + endpoint
@@ -1103,7 +1130,6 @@ def get_opps_for_account():
       }
     }
     """
-
 
     # Prepare the payload as a Python dictionary
     payload = {"query": query, "variables": {}}
