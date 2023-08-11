@@ -82,6 +82,14 @@ class Account(db.Model):
     SLASerialNumber__c = db.Column(db.String)
     SLAExpirationDate__c = db.Column(db.Date)
 
+    Notes = db.Column(db.Text)
+    Score = db.Column(db.Float)
+    Headcount = db.Column(db.Integer)
+    TechColumn = db.Column(db.String)
+    IntegrationStatus = db.Column(db.Enum('integration', 'neutral', 'competitor', name='integration_status_enum'))
+    SubIndustry = db.Column(db.String)
+
+
     def __repr__(self):
         return f'<Account {self.Name}>'
 
@@ -303,5 +311,18 @@ class Contact(db.Model):
     Languages__c = db.Column(db.String)
     JobRank = db.Column(db.Integer)
 
+    IsPartnerRep = db.Column(db.Boolean, default=False)
+    LinkedInUrl = db.Column(db.String)
+
+
     def __repr__(self):
         return f'<Contact {self.Name}>'
+
+
+class AccountActivity(db.Model):
+    __tablename__ = 'account_activity'
+    Id = db.Column(db.Integer, primary_key=True)
+    AccountId = db.Column(db.String, db.ForeignKey('account.Id'))
+    ActivityType = db.Column(db.Enum('meeting', 'call', 'email', name='activity_type_enum'))
+    Date = db.Column(db.DateTime, default=datetime.utcnow)
+    Details = db.Column(db.Text)

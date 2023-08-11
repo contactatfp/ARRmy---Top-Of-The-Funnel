@@ -5,6 +5,9 @@ import logging
 import os
 from datetime import datetime
 from uuid import uuid4
+
+from langchain.chains.summarize import load_summarize_chain
+from langchain.chat_models import ChatOpenAI
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
 import requests
@@ -12,7 +15,7 @@ from dateutil.parser import parse
 from faker.generator import random
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort, render_template_string
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, text
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_
 from werkzeug.utils import secure_filename
@@ -25,6 +28,12 @@ from app.forms import EventForm
 from flask import request
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
+from langchain.chains.llm import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.utilities import SQLDatabase
+from langchain.llms import OpenAI
+from langchain_experimental.sql import SQLDatabaseChain
 
 app = Flask(__name__)
 
@@ -75,7 +84,7 @@ def rank_contact(contact_id):
     contact = Contact.query.get(contact_id)
 
     if contact is not None:
-        job_title = contact.JobTitle if contact.JobTitle else ""  # Use an empty string if JobTitle is None
+        job_title = contact.Title if contact.Title else ""  # Use an empty string if JobTitle is None
 
         # Default rank is 0 if no key phrase exists in the job title
         rank = 0
@@ -90,6 +99,45 @@ def rank_contact(contact_id):
 
         # Commit the change to the database
         db.session.commit()
+    return rank
+
+
+def get_top_5_contacts_using_rank_contact(account_id):
+    # Fetch contacts for the given account
+    contacts = Contact.query.filter_by(AccountId=account_id).all()
+
+    # If there are no contacts, return an empty list
+    if not contacts:
+        return []
+
+    # Rank contacts based on the number of interactions
+    contacts_with_interactions = db.session.query(Contact, db.func.count(Interaction.id).label('interaction_count')). \
+        join(Interaction, Interaction.contactId == Contact.Id). \
+        filter(Contact.AccountId == account_id). \
+        group_by(Contact.Id). \
+        order_by(text('interaction_count DESC')).all()
+
+    top_contacts = []
+
+    # Add contacts with interactions to the top_contacts list
+    for contact, _ in contacts_with_interactions:
+        top_contacts.append(contact)
+        if len(top_contacts) == len(contacts):  # Stop adding if all contacts are added
+            break
+
+    # If there are contacts left to add and we haven't reached 5 yet, augment the list with ranked contacts
+    if len(top_contacts) < len(contacts):
+        # Exclude contacts already in the top_contacts list
+        remaining_contacts = [contact for contact in contacts if contact not in top_contacts]
+
+        # Rank the remaining contacts by title
+        remaining_contacts.sort(key=lambda x: rank_contact(x.Id), reverse=True)
+
+        # Augment the top_contacts list with the ranked contacts
+        top_contacts += remaining_contacts[:5 - len(top_contacts)]
+
+    return top_contacts
+
 
 
 @login_manager.user_loader
@@ -98,7 +146,7 @@ def load_user(user_id):
 
 
 @app.route('/')
-def index():  # put application's code here
+def index():
     get_data()
     # if user is logged in, redirect to appropriate dashboard
     if current_user.is_authenticated:
@@ -208,6 +256,18 @@ def event_list(account_id, event_city):
             events.append(address.event)
     return render_template('event_list.html', events=events, account=account)
 
+
+def notes_summary(account_id):
+    db = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", verbose=True, openai_api_key=config['openai_api-key'])
+    db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
+    # account = query account with ID 001Dp00000KBTVRIA5
+    account = Account.query.get(account_id)
+    summary = db_chain.run(f'''
+    Create an account summary that includes Interactions for the account: {account.Name}
+    If there are not Interactions for the account then return "No Interactions for this account"
+    ''')
+    return summary
 
 @app.route('/sdr_dashboard')
 # @login_required
