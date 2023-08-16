@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+    <!-- Content -->
+    <div class="container mt-3">
+        <div class="row justify-content-center">
+            <!-- Image and Name as Heading -->
+            <div class="col-12 text-center mb-4">
+                <img src="../static/img/default_profile.jpg" alt="Default Profile" class="img-fluid rounded-circle" style="width: 100px; margin-bottom: 15px;">
+                <h1>{{ contact.Name }}</h1>
+            </div>
+        </div>
+
+        <!-- Account and Contact Details -->
+        <div class="row">
+            <div class="col-md-10 col-sm-12">
+                <hr>
+                <h4>Account</h4>
+                <p><strong>Name:</strong> {{ associated_account.Name }}</p>
+
+                <h4>Contact Details</h4>
+                <p><strong>Email:</strong> <a href="mailto:mamaral@acrisure.com">{{ contact.Email or 'N/A'}}</a></p>
+
+                <!-- Additional Details (based on the model) -->
+                <p><strong>Phone:</strong> {{ contact.Phone or 'N/A' }}</p>
+                <p><strong>Title:</strong> {{ contact.Title or 'N/A' }}</p>
+                <p><strong>Department:</strong> {{ contact.Department or 'N/A' }}</p>
+                <p><strong>Languages:</strong> {{ contact.Languages__c or 'N/A' }}</p>
+                <p><strong>Job Rank:</strong> {{ contact.JobRank or 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

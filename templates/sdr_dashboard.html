@@ -55,7 +55,7 @@
         <tr>
             <th>Name</th>
             <th>State</th>
-{#            <th>Opportunities</th>#}
+            <th>Opportunities</th>
             <th>Notes</th>
             <th>Last Interaction</th>
             <th>Events</th>
@@ -68,7 +68,16 @@
             <tr>
                 <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
                 <td>{{ account.BillingState }}</td>
-{#                <td style="background-color: {{ status_color }}">{{ open_count }} open, {{ closed_count }} closed in last 12 months</td>#}
+                <td style="background-color: {{ status_color[account.Id] }}">
+
+                    {% if account.Id in open_opps_by_account %}
+                        {{ open_opps_by_account[account.Id] }} open
+                    {% elif account.Id in closed_opps_by_account %}
+                        {{ closed_opps_by_account[account.Id] }} closed in last 12 months
+                    {% else %}
+                        No opportunities
+                    {% endif %}
+                </td>
 
 
                 {#            make an editable input for cell#}

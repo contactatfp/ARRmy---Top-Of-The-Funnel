@@ -139,7 +139,6 @@ def get_top_5_contacts_using_rank_contact(account_id):
     return top_contacts
 
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
@@ -269,6 +268,7 @@ def notes_summary(account_id):
     ''')
     return summary
 
+
 @app.route('/sdr_dashboard')
 # @login_required
 def sdr_dashboard():
@@ -281,32 +281,25 @@ def sdr_dashboard():
         account_event_counts = {}
 
         top5_dict = {}
+        color_dict = {}
+        closed_opps = get_closed_won_opps()
+        open_opps = get_open_opps()
+
+        # Organize opportunities by account.Id
+        open_opps_by_account = {opp["node"]["Account"]["Id"]: 1 for opp in open_opps}
+        closed_opps_by_account = {opp["node"]["Account"]["Id"]: 1 for opp in closed_opps}
+        #
+
+        # Determine color for each account based on opp status
         for account in accounts:
-            # get account status
-            # color = get_account_status(account.Id)
-            # Get the corresponding address based on the city
-            address = Address.query.filter_by(city=account.BillingCity).first()
-            top5 = get_top_5_contacts_using_rank_contact(account.Id)
-            # for i in range(len(top5)):
-            #     top5[i] = top5[i].to_dict()
-            top5_dict[account.Id] = top5
-            # for i in range(len(top5)):
-            #
-            #     top5_dict[account.Id]['Name'] = top5[i].Name
-            #     top5_dict[account.Id]['Email'] = top5[i].Email
-            #     top5_dict[account.Id]['Phone'] = top5[i].Phone
+            account_id = account.Id
 
-                # top5_dict[account.Id][i] = top5[i]
-
-            # If the address exists and has an event
-            if address and address.event:
-                # Add the event count to the dictionary
-                if account.Id in account_event_counts:
-                    account_event_counts[account.Id] += 1
-                    events.append(address)
-                else:
-                    account_event_counts[account.Id] = 1
-                    events.append(address)
+            if account_id in open_opps_by_account:
+                color_dict[account_id] = "Green"
+            elif account_id in closed_opps_by_account:
+                color_dict[account_id] = "Yellow"
+            else:
+                color_dict[account_id] = "Red"
 
         def get_last_interaction(accountId):
             interaction = Interaction.query.filter_by(account_id=accountId).order_by(
@@ -314,8 +307,13 @@ def sdr_dashboard():
             return interaction
 
         return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
-                               account_event_counts=account_event_counts, events=events, top5=top5_dict)
+                               account_event_counts=account_event_counts, events=events, top5=top5_dict,
+                               status_color=color_dict, closed_opps_by_account=closed_opps_by_account,
+                               open_opps_by_account=open_opps_by_account)
+
     return "Access denied", 403
+
+
 
 
 from datetime import datetime
@@ -774,8 +772,7 @@ def last30():
         last_interaction_date = 'No Interactions'
     else:
         last_interaction_date = Interaction.query.filter_by(account_id=account_id).order_by(
-        Interaction.timestamp.desc()).first().timestamp
-
+            Interaction.timestamp.desc()).first().timestamp
 
     # Define the tooltip's HTML structure
     tooltip_content = """
@@ -909,8 +906,6 @@ def contact_details(contact_id):
     contact = Contact.query.get(contact_id)
     associated_account = Account.query.get(contact.AccountId)  # Assuming you have an Account model
     return render_template('contact_detail.html', contact=contact, associated_account=associated_account)
-
-
 
 
 def convert_contact_to_dict(contact):
@@ -1307,12 +1302,57 @@ def get_account_status(account_id):
     # elif closed_count > 0:
     #     status_color = "Yellow"
     else:
-        status_color = "None"
+        status_color = "Red"
 
-    return jsonify({"status_color": status_color, "open_count": open_count})
+    return status_color
 
 
+@app.route('/won', methods=['GET', 'POST'])
+def get_closed_won_opps(days_ago=365):
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
+    payload = "{\"query\":\"query opportunitiesClosedWon {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          StageName: { eq: \\\"Closed Won\\\" }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {\\n              Name {\\n                value\\n              }\\n              Id \\n            }\\n            # NextStep {\\n            #   value\\n            # }\\n            CloseDate {\\n              value\\n            #   displayValue\\n            }\\n            # Description {\\n            #   value\\n            # }\\n            StageName {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+    else:
+        token = token['access_token']
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+    response_json = response.json()
+    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+    # filter opps won in the last 12 months, keep in mind the CloseDate is a string and provide count
+    opportunities = [opportunity for opportunity in opportunities if
+                     datetime.strptime(opportunity["node"]["CloseDate"]["value"], "%Y-%m-%d") > (
+                             datetime.now() - timedelta(days=days_ago))]
 
+    return opportunities
+
+
+@app.route('/open', methods=['GET', 'POST'])
+def get_open_opps(days_ago=365):
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
+    payload = "{\"query\":\"query opportunitiesNotClosed {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          not: {\\n            or: [\\n              { StageName: { eq: \\\"Closed Won\\\" } }\\n              { StageName: { eq: \\\"Closed Lost\\\" } }\\n            ]\\n          }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {  # Add this line\\n              Name {  # And this line\\n                value\\n              }\\n              Id\\n            }\\n            # NextStep {\\n            #   value\\n            # }\\n            CloseDate {\\n              value\\n            #   displayValue\\n            }\\n            # Description {\\n            #   value\\n            # }\\n            StageName {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+    else:
+        token = token['access_token']
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+    response_json = response.json()
+    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+    # filter opps won in the last 12 months, keep in mind the CloseDate is a string and provide count
+    # opportunities = [opportunity for opportunity in opportunities if
+    #                  datetime.strptime(opportunity["node"]["CloseDate"]["value"], "%Y-%m-%d") > (
+    #                          datetime.now() - timedelta(days=days_ago))]
+
+    return opportunities
 
 
 def create_api_request(method, url, token, data=None):
