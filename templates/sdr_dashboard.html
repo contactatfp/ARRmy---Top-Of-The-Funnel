@@ -6,15 +6,29 @@
     tbody tr:hover {
         cursor: move;
     }
-    .tooltip-inner {
-        max-width: 300px; /* Set a wider max-width if desired */
-        padding: 10px 15px; /* Adjust padding for larger tooltip */
-        background-color: #ffffff; /* Background color */
-        color: #3a3a3a;  /* Text color */
-        border-radius: 8px;  /* Rounded borders */
-        border: #3a3a3a solid 1px; /* Optional: Padding and border properties */
-        font-size: 1.2em; /* Bigger font */
+    .tooltip {
+        pointer-events: none; /* Prevents the tooltip from blocking other elements */
     }
+    .tooltip.show {
+        opacity: 1;
+    }
+    .tooltip-inner {
+        max-width: none; /* Remove the max-width restriction */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for depth */
+    }
+    .note-expander {
+        display: none;
+        position: absolute;
+        right: 10px;
+        bottom: 5px;
+        cursor: pointer;
+    }
+
+    .noteGroup:hover .note-expander {
+        display: block; /* Show the expander arrow on hover */
+    }
+
+
 
     /* Adjust arrow color to match tooltip background */
     .tooltip.bs-tooltip-top .arrow::before, .tooltip.bs-tooltip-auto .arrow::before {
@@ -40,8 +54,12 @@
         <thead>
         <tr>
             <th>Name</th>
+            <th>State</th>
+{#            <th>Opportunities</th>#}
+            <th>Notes</th>
             <th>Last Interaction</th>
             <th>Events</th>
+            <th>Top 5 Contacts</th>
             <th>Menu</th>
         </tr>
         </thead>
@@ -49,6 +67,24 @@
         {% for account in accounts %}
             <tr>
                 <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
+                <td>{{ account.BillingState }}</td>
+{#                <td style="background-color: {{ status_color }}">{{ open_count }} open, {{ closed_count }} closed in last 12 months</td>#}
+
+
+                {#            make an editable input for cell#}
+                <td>
+                    <div class="input-group noteGroup">
+                        <textarea class="form-control note-textarea" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
+                        <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </div>
+
+
+                </td>
+
+
                 <td data-account-id="{{ account.Id }}" class="last-interaction-cell" style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
                     {% if last_interaction != None %}
                         <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
@@ -62,12 +98,19 @@
                     <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
                 {% endif %}
                 <td>
+                    {% for contact in top5[account.Id] %}
+                        <a href="{{ url_for('contact_details', contact_id=contact.Id) }}">{{ contact.Name }} <br> {{ contact.Title }}</a><br><br>
+                    {% endfor %}
+                </td>
+
+                <td>
                     <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
                             <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
                         </svg>
                     </button>
                 </td>
+
             </tr>
         {% endfor %}
         </tbody>
@@ -162,14 +205,6 @@
         <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-{#        <script>#}
-{#            $(function () {#}
-{#                $('[data-toggle="tooltip"]').tooltip({#}
-{#                    html: true#}
-{#                })#}
-{#            });#}
-{##}
-{#        </script>#}
 
 
         <script>
@@ -221,34 +256,104 @@
                 });
             });
         </script>
-{#        <script>#}
-{#            $(document).ready(function() {#}
-{#                $('.last-interaction-cell').hover(function() {#}
-{#                    let accountId = $(this).data('account-id');#}
-{##}
-{#                    // Fetch last 30-day interaction info#}
-{#                    $.get('/last30', { id: accountId }, function(data) {#}
-{#                        // Create an HTML template for the tooltip#}
-{#                        let tooltipContent = `#}
-{#                        <div>#}
-{#                            <strong>Last 30-day Interactions:</strong>#}
-{#                            <span>${data}</span>#}
-{#                        </div>#}
-{#                    `;#}
-{##}
-{#                        // Update tooltip content and show it#}
-{#                        $(this).attr('data-original-title', tooltipContent).tooltip('show');#}
-{#                    }.bind(this));#}
-{#                }, function() {#}
-{#                    // Hide the tooltip when the mouse leaves the cell#}
-{#                    $(this).tooltip('hide');#}
-{#                }).tooltip({#}
-{#                    trigger: 'manual',#}
-{#                    html: true  // Allow HTML in tooltip#}
-{#                });#}
-{#            });#}
-{##}
-{#        </script>#}
+
+<script>
+    $(document).ready(function() {
+        // Double click event on the input field
+        $('.note-input').dblclick(function() {
+            // Lock all other notes before making current note editable
+            $('.note-input').attr('readonly', true).removeClass('editing');
+            $('.save-note-btn').hide();
+
+            // Make current note editable
+            $(this).removeAttr('readonly').addClass('editing');
+            $(this).next('.save-note-btn').show();
+        });
+
+        // Save button click event
+        $('.save-note-btn').click(function() {
+            lockNote($(this).prev('.note-input'));
+        });
+
+        // Click outside of the editable area to lock it
+        $(document).click(function(event) {
+            if (!$(event.target).closest('.editing').length && !$(event.target).hasClass('save-note-btn')) {
+                lockNote($('.editing'));
+            }
+        });
+
+        function lockNote($noteInput) {
+            // Here, you can add an AJAX call to save the note to the server
+            // For now, I'll just revert the input to read-only and hide the save button
+
+            $noteInput.attr('readonly', true).removeClass('editing');  // Make input read-only and remove editing class
+            $noteInput.next('.save-note-btn').hide();  // Hide the save button
+        }
+    });
+
+
+</script>
+<script>
+    $(document).ready(function() {
+        $('.last-interaction-cell').tooltip({
+            trigger: 'hover',
+            delay: { "show": 500, "hide": 100 }, // Delay the tooltip appearance by 500ms
+            boundary: 'window', // Prevents the tooltip from going outside the window
+            placement: 'top',
+            html: true,  // Allow HTML in tooltip
+            title: function() {
+                return $(this).attr('data-tooltip-content');
+            }
+        }).on("mouseenter", function() {
+            var _this = this;
+            $(this).tooltip("show");
+
+            // Allow the tooltip to remain visible if hovered
+            $(".tooltip").on("mouseenter", function() {
+                $(_this).tooltip('show');
+            }).on("mouseleave", function() {
+                $(_this).tooltip('hide');
+            });
+
+        }).on("mouseleave", function() {
+            var _this = this;
+            setTimeout(function() {
+                if (!$(".tooltip:hover").length) {
+                    $(_this).tooltip("hide");
+                }
+            }, 100);
+        });
+    });
+
+    // Double click event on the textarea
+    $('.note-textarea').dblclick(function() {
+        // Lock all other notes before making current note editable
+        $('.note-textarea').attr('readonly', true).removeClass('editing');
+        $('.save-note-btn').hide();
+
+        // Make current note editable
+        $(this).removeAttr('readonly').addClass('editing');
+        $(this).next('.save-note-btn').show();
+    });
+
+    $(document).ready(function() {
+        // Handle the expand/collapse functionality
+        $('.note-expander').click(function(e) {
+            e.stopPropagation(); // Prevent any other events like the textarea becoming editable
+
+            var $textarea = $(this).siblings('.note-textarea');
+            if ($textarea.css('max-height') !== 'none') {
+                // If the textarea is limited in height, expand it
+                $textarea.css('max-height', 'none').css('height', 'auto');
+            } else {
+                // Otherwise, collapse it back to the original max height
+                $textarea.css('max-height', '150px').css('height', '150px');
+            }
+        });
+    });
+
+
+</script>
 
 </div>
 {% endblock %}

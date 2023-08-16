@@ -3,7 +3,7 @@ import io
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from langchain.chains.summarize import load_summarize_chain
@@ -280,9 +280,23 @@ def sdr_dashboard():
         # Initialize an empty dictionary to store the number of events for each account
         account_event_counts = {}
 
+        top5_dict = {}
         for account in accounts:
+            # get account status
+            # color = get_account_status(account.Id)
             # Get the corresponding address based on the city
             address = Address.query.filter_by(city=account.BillingCity).first()
+            top5 = get_top_5_contacts_using_rank_contact(account.Id)
+            # for i in range(len(top5)):
+            #     top5[i] = top5[i].to_dict()
+            top5_dict[account.Id] = top5
+            # for i in range(len(top5)):
+            #
+            #     top5_dict[account.Id]['Name'] = top5[i].Name
+            #     top5_dict[account.Id]['Email'] = top5[i].Email
+            #     top5_dict[account.Id]['Phone'] = top5[i].Phone
+
+                # top5_dict[account.Id][i] = top5[i]
 
             # If the address exists and has an event
             if address and address.event:
@@ -300,7 +314,7 @@ def sdr_dashboard():
             return interaction
 
         return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
-                               account_event_counts=account_event_counts, events=events)
+                               account_event_counts=account_event_counts, events=events, top5=top5_dict)
     return "Access denied", 403
 
 
@@ -890,6 +904,15 @@ def get_contacts():
     return jsonify(contacts_list)
 
 
+@app.route('/contact/<contact_id>')
+def contact_details(contact_id):
+    contact = Contact.query.get(contact_id)
+    associated_account = Account.query.get(contact.AccountId)  # Assuming you have an Account model
+    return render_template('contact_detail.html', contact=contact, associated_account=associated_account)
+
+
+
+
 def convert_contact_to_dict(contact):
     return {
         "Id": contact.Id,
@@ -1140,73 +1163,156 @@ def news():
     return formatted_response
 
 
-@app.route('/salesforce/opps', methods=['GET', 'POST'])
-def get_opps_for_account():
+# @app.route('/salesforce/opps', methods=['GET', 'POST'])
+# def get_opps_for_account():
+#     url = f"{DOMAIN}{SALESFORCE_API_OPPS}"
+#     token = tokens()
+#     if not token:
+#         return {"error": "Failed to get Salesforce token"}
+#
+#     query = """
+#     query opportunitiesNotClosed {
+#       uiapi {
+#         query {
+#           Opportunity(
+#             where: {
+#               not: {
+#                 or: [
+#                   { StageName: { eq: "Closed Won" } }
+#                   { StageName: { eq: "Closed Lost" } }
+#                 ]
+#               }
+#             }
+#           ) {
+#             edges {
+#               node {
+#                 Id
+#                 Account {
+#                   Name {
+#                     value
+#                   }
+#                   Id
+#                 }
+#                 NextStep {
+#                   value
+#                 }
+#                 CloseDate {
+#                   value
+#                   displayValue
+#                 }
+#                 Description {
+#                   value
+#                 }
+#                 StageName {
+#                   value
+#                 }
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#     """
+#
+#     # Prepare the payload as a Python dictionary
+#     payload = {"query": query, "variables": {}}
+#
+#     # Update the request to send JSON data
+#     response = create_api_request("POST", url, token['access_token'], payload)
+#     response_json = response.json()
+#     opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+#
+#     # Loop through each opportunity and print the desired information
+#     for opp in opportunities:
+#         account_name = opp["node"]["Account"]["Name"]["value"]
+#         close_date = opp["node"]["CloseDate"]["value"]
+#         stage_name = opp["node"]["StageName"]["value"]
+#         print(f"Account Name: {account_name}, Close Date: {close_date}, Stage Name: {stage_name}")
+#
+#     return render_template('opportunities.html', opportunities=opportunities)
+
+
+@app.route('/salesforce/account-status/<account_id>', methods=['GET'])
+def get_account_status(account_id):
     url = f"{DOMAIN}{SALESFORCE_API_OPPS}"
     token = tokens()
     if not token:
         return {"error": "Failed to get Salesforce token"}
 
-    query = """
-    query opportunitiesNotClosed {
-      uiapi {
-        query {
+    # Check for open opportunities
+    open_query = f"""
+    query openOpportunitiesForAccount {{
+      uiapi {{
+        query {{
           Opportunity(
-            where: {
-              not: {
-                or: [
-                  { StageName: { eq: "Closed Won" } }
-                  { StageName: { eq: "Closed Lost" } }
-                ]
-              }
-            }
-          ) {
-            edges {
-              node {
+            where: {{
+              and: [
+                {{ Account: {{ Id: {{ eq: "{account_id}" }} }} }},
+                {{ StageName: {{ eq: "Open" }} }}
+              ]
+            }}
+          ) {{
+            edges {{
+              node {{
                 Id
-                Account {
-                  Name {
-                    value
-                  }
-                  Id
-                }
-                NextStep {
-                  value
-                }
-                CloseDate {
-                  value
-                  displayValue
-                }
-                Description {
-                  value
-                }
-                StageName {
-                  value
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+              }}
+            }}
+          }}
+        }}
+      }}
+    }}
     """
+    open_payload = {"query": open_query, "variables": {}}
+    response_open = create_api_request("POST", url, token['access_token'], open_payload)
+    open_count = len(response_open.json()["data"]["uiapi"]["query"]["Opportunity"]["edges"])
 
-    # Prepare the payload as a Python dictionary
-    payload = {"query": query, "variables": {}}
+    # Check for closed opportunities within the last 12 months
+    twelve_months_ago = (datetime.now() - timedelta(days=365)).isoformat()
+    closed_query = f"""
+    query recentClosedOpportunitiesForAccount {{
+      uiapi {{
+        query {{
+          Opportunity(
+            where: {{
+              and: [
+                {{ Account: {{ Id: {{ eq: "{account_id}" }} }} }},
+                {{ CloseDate: {{ gte: "{twelve_months_ago}" }} }},
+                {{ or: [
+                  {{ StageName: {{ eq: "Closed Won" }} }},
+                  {{ StageName: {{ eq: "Closed Lost" }} }}
+                ]}}
+              ]
+            }}
+          ) {{
+            edges {{
+              node {{
+                Id
+              }}
+            }}
+          }}
+        }}
+      }}
+    }}
+    """
+    closed_payload = {"query": closed_query, "variables": {}}
+    response_closed = create_api_request("POST", url, token['access_token'], closed_payload)
+    test = response_closed.json()
+    # closed_count = len(response_closed.json()["data"]["uiapi"]["query"]["Opportunity"]["edges"])
 
-    # Update the request to send JSON data
-    response = create_api_request("POST", url, token['access_token'], payload)
-    response_json = response.json()
-    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+    # closed_count = len(response_closed.json()["data"]["uiapi"]["query"]["Opportunity"]["edges"])
 
-    # Loop through each opportunity and print the desired information
-    for opp in opportunities:
-        account_name = opp["node"]["Account"]["Name"]["value"]
-        close_date = opp["node"]["CloseDate"]["value"]
-        stage_name = opp["node"]["StageName"]["value"]
-        print(f"Account Name: {account_name}, Close Date: {close_date}, Stage Name: {stage_name}")
+    # Determine color based on counts
+    if open_count > 0:
+        status_color = "Green"
+    # elif closed_count > 0:
+    #     status_color = "Yellow"
+    else:
+        status_color = "None"
 
-    return render_template('opportunities.html', opportunities=opportunities)
+    return jsonify({"status_color": status_color, "open_count": open_count})
+
+
+
 
 
 def create_api_request(method, url, token, data=None):
