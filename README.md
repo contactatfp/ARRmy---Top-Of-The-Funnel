@@ -38,5 +38,5 @@ Start the Flask development server:
 flask run
 Open your browser and navigate to http://127.0.0.1:5000.
 
-#Contributing#Contributing
+#Contributing
 If you want to contribute to this project, please fork the repository and create a pull request.
