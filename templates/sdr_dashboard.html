@@ -19,7 +19,7 @@
     .note-expander {
         display: none;
         position: absolute;
-        right: 10px;
+        left: 10px;
         bottom: 5px;
         cursor: pointer;
     }
@@ -54,6 +54,7 @@
         <thead>
         <tr>
             <th>Name</th>
+            <th>Tier</th>
             <th>State</th>
             <th>Opportunities</th>
             <th>Notes</th>
@@ -67,13 +68,14 @@
         {% for account in accounts %}
             <tr>
                 <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
+                <td>{{ account.Score|int }}</td>
                 <td>{{ account.BillingState }}</td>
-                <td style="background-color: {{ status_color[account.Id] }}">
+                <td style="background-color: {{ status_color[account.Id] }}; text-align: center;">
 
                     {% if account.Id in open_opps_by_account %}
-                        {{ open_opps_by_account[account.Id] }} open
+                        {{ open_opps_by_account[account.Id] }} Open
                     {% elif account.Id in closed_opps_by_account %}
-                        {{ closed_opps_by_account[account.Id] }} closed in last 12 months
+                        {{ closed_opps_by_account[account.Id] }} Won in Last 12 Months
                     {% else %}
                         No opportunities
                     {% endif %}

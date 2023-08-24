@@ -34,8 +34,23 @@ from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.utilities import SQLDatabase
 from langchain.llms import OpenAI
 from langchain_experimental.sql import SQLDatabaseChain
+from flask_apscheduler import APScheduler
+from flask import current_app
+
+from app.rank_algo import rank_companies
 
 app = Flask(__name__)
+
+
+class Config:
+    SCHEDULER_API_ENABLED = True
+
+
+app.config.from_object(Config)
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 migrate = Migrate(app, db)
 
@@ -57,6 +72,21 @@ with open('config.json') as f:
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
+
+
+@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-23 16:53:02')
+def scheduled_rank_companies():
+    try:
+        with app.app_context():
+            ranked_companies = rank_companies()
+            for rank, (company, score) in enumerate(ranked_companies):
+                company.Score = score
+                company.Rank = rank
+                db.session.add(company)
+            db.session.commit()
+            logging.info("Companies ranked successfully.")
+    except Exception as e:
+        logging.error(f"Error in scheduled_rank_companies: {e}")
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
@@ -285,13 +315,16 @@ def sdr_dashboard():
         closed_opps = get_closed_won_opps()
         open_opps = get_open_opps()
 
-        # Organize opportunities by account.Id
-        open_opps_by_account = {opp["node"]["Account"]["Id"]: 1 for opp in open_opps}
-        closed_opps_by_account = {opp["node"]["Account"]["Id"]: 1 for opp in closed_opps}
+        # Organize opportunities by account.Id and return count for opp in each account
+        # FIX 1: This is not working as expected. It is returning the same count for each account
+        open_opps_by_account = {opp["node"]["Account"]["Id"]: +1 for opp in open_opps}
+        closed_opps_by_account = {opp["node"]["Account"]["Id"]: +1 for opp in closed_opps}
+
         #
 
         # Determine color for each account based on opp status
         for account in accounts:
+            top5_dict[account.Id] = get_top_5_contacts_using_rank_contact(account.Id)
             account_id = account.Id
 
             if account_id in open_opps_by_account:
@@ -312,8 +345,6 @@ def sdr_dashboard():
                                open_opps_by_account=open_opps_by_account)
 
     return "Access denied", 403
-
-
 
 
 from datetime import datetime

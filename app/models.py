@@ -81,7 +81,7 @@ class Account(db.Model):
     UpsellOpportunity__c = db.Column(db.String)
     SLASerialNumber__c = db.Column(db.String)
     SLAExpirationDate__c = db.Column(db.Date)
-
+    Rank = db.Column(db.Integer)
     Notes = db.Column(db.Text)
     Score = db.Column(db.Float)
     Headcount = db.Column(db.Integer)

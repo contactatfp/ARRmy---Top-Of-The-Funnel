@@ -1,4 +1,5 @@
 # config.py
+
 SQLALCHEMY_DATABASE_URI = 'sqlite:///sfdc.db'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
