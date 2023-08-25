@@ -341,10 +341,17 @@ def get_tier():
     formatted_data = f"<strong>Rank:</strong> {account.Rank if account else 'N/A'}<br>"
     formatted_data += f"<strong>Closed Won Opportunities:</strong> {len(closed_won_opps)}<br>"
     formatted_data += f"<strong>Open Opportunities:</strong> {len(open_opps)}<br>"
+    total_won = 0
     for opp in closed_won_opps:
         formatted_data += f"<span class='closed-won-opp'><strong>Closed Won Opp:</strong> Closed on {opp['node']['CloseDate']['value']}</span><br>"
+        if len(closed_won_opps) > 0:
+            total_won += opp["node"]["Amount"]["value"]
+    if total_won > 0:
+        total_won = int(total_won)
+        formatted_data += f"<span class='closed-won-opp'><br><strong>Total Closed in Last 12: $</strong>{total_won}</span><br>"
+
     for opp in open_opps:
-        formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
+            formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
 
 
     return formatted_data
@@ -1395,7 +1402,7 @@ def get_account_status(account_id):
 @app.route('/won', methods=['GET', 'POST'])
 def get_closed_won_opps(days_ago=365):
     url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
-    payload = "{\"query\":\"query opportunitiesClosedWon {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          StageName: { eq: \\\"Closed Won\\\" }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {\\n              Name {\\n                value\\n              }\\n              Id \\n            }\\n            # NextStep {\\n            #   value\\n            # }\\n            CloseDate {\\n              value\\n            #   displayValue\\n            }\\n            # Description {\\n            #   value\\n            # }\\n            StageName {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
+    payload = "{\"query\":\"query opportunitiesClosedWon {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          StageName: { eq: \\\"Closed Won\\\" }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {\\n              Name {\\n                value\\n              }\\n              Id \\n            }\\n            CloseDate {\\n              value\\n            }\\n            StageName {\\n              value\\n            }\\n            Amount {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
     token = tokens()
     if not token:
         return {"error": "Failed to get Salesforce token"}
