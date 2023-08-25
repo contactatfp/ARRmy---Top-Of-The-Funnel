@@ -316,7 +316,6 @@ def save_notes():
     return jsonify(status="success", message="Notes updated successfully")
 
 
-
 @app.route('/tier', methods=['GET'])
 def get_tier():
     account_id = request.args.get('id')
@@ -326,7 +325,9 @@ def get_tier():
     closed_won_opps = get_closed_won_opps()
 
     # sort all opps for this for close in the last 12 months
-    closed_won_opps = list(filter(lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') > datetime.now() - timedelta(days=365), closed_won_opps))
+    closed_won_opps = list(filter(
+        lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') > datetime.now() - timedelta(
+            days=365), closed_won_opps))
     closed_won_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, closed_won_opps))
 
     # get all opportunities for account that are open
@@ -334,8 +335,9 @@ def get_tier():
     open_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, open_opps))
 
     # sort all opps for this for close in the next 6 months
-    open_opps = list(filter(lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') < datetime.now() + timedelta(days=180), open_opps))
-
+    open_opps = list(filter(
+        lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') < datetime.now() + timedelta(
+            days=180), open_opps))
 
     # Format the data
     formatted_data = f"<strong>Rank:</strong> {account.Rank if account else 'N/A'}<br>"
@@ -351,13 +353,9 @@ def get_tier():
         formatted_data += f"<span class='closed-won-opp'><br><strong>Total Closed in Last 12: $</strong>{total_won}</span><br>"
 
     for opp in open_opps:
-            formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
-
+        formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
 
     return formatted_data
-
-
-
 
 
 @app.route('/sdr_dashboard')
@@ -1228,8 +1226,8 @@ def news():
 
     import os
 
-    os.environ["GOOGLE_CSE_ID"] = "373a54e5d518e4761"
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyCMiSE9lx29iSCvAi0zjJ_mqBizc-IgROM"
+    os.environ["GOOGLE_CSE_ID"] = config['GOOGLE_CSE_ID']
+    os.environ["GOOGLE_API_KEY"] = config['GOOGLE_API_KEY']
 
     search = GoogleSearchAPIWrapper()
 
