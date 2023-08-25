@@ -1,8 +1,13 @@
 {% extends "base.html" %}
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
 {% block content %}
 <style>
+
+    body {
+        font-family: 'Arial', 'Helvetica', sans-serif;
+        font-weight: 600;
+        text-align: center;
+    }
     tbody tr:hover {
         cursor: move;
     }
@@ -34,6 +39,17 @@
     .tooltip.bs-tooltip-top .arrow::before, .tooltip.bs-tooltip-auto .arrow::before {
         border-top-color: #333;
     }
+
+    .closed-won-opp {
+        color: red;  /* Color for open opportunities */
+        font-weight: bold;
+    }
+
+    .open-opp {
+        color: green;  /* Color for open opportunities */
+        font-weight: bold;
+    }
+
 
 
 
@@ -68,8 +84,8 @@
         {% for account in accounts %}
             <tr>
                 <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
-                <td>{{ account.Score|int }}</td>
-                <td>{{ account.BillingState }}</td>
+                <td class="tier-cell" data-account-id="{{ account.Id }}">{{ account.Score|int }}</td>
+                <td class="state-cell">{{ account.BillingState }}</td>
                 <td style="background-color: {{ status_color[account.Id] }}; text-align: center;">
 
                     {% if account.Id in open_opps_by_account %}
@@ -85,11 +101,11 @@
                 {#            make an editable input for cell#}
                 <td>
                     <div class="input-group noteGroup">
-                        <textarea class="form-control note-textarea" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
+                        <textarea class="form-control note-textarea" data-account-id="{{ account.Id }}" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
                         <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-                        </svg>
+{#                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">#}
+{#                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>#}
+{#                        </svg>#}
                     </div>
 
 
@@ -206,165 +222,158 @@
             </div>
         </div>
 
+    <!-- Modal for Editing Notes -->
+    <div class="modal fade" id="editNotesModal" tabindex="-1" aria-labelledby="editNotesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNotesModalLabel">Edit Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="modalNoteTextarea" class="form-control"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveModalNote">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Script references -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 
 
-        <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <!-- Script references -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function() {
+            // DataTables initialization
+            var table = $('#myTable').DataTable({
+                "order": [[ 0, "asc" ]],
+                "pageLength": 10,
+                "drawCallback": function(settings) {
+                    // Reinitialize tooltips for the rows in the current page
+                    $('.last-interaction-cell, .tier-cell, .state-cell').tooltip({
+                        trigger: 'manual',
+                        html: true,
+                        title: function() {
+                            return $(this).attr('data-tooltip-content');
+                        }
+                    });
+
+                    // Fetch tooltip content for the rows in the current page
+                    $('.last-interaction-cell').each(function() {
+                        let $thisCell = $(this);
+                        let accountId = $thisCell.data('account-id');
+                        if (!$thisCell.attr('data-tooltip-content')) { // If tooltip content isn't fetched yet
+                            $.get('/last30', { id: accountId }, function(data) {
+                                $thisCell.attr('data-tooltip-content', data);
+                            });
+                        }
+                    });
+
+                    $('.tier-cell').each(function() {
+                        let $thisCell = $(this);
+                        let accountId = $thisCell.data('account-id');
+                        if (!$thisCell.attr('data-tooltip-content')) { // If tooltip content isn't fetched yet
+                            $.get('/tier', { id: accountId }, function(data) {
+                                $thisCell.attr('data-tooltip-content', data);
+                            });
+                        }
+                    });
 
 
-        <script>
-            $(document).ready(function() {
-                $('#myTable').DataTable({
-                    "order": [[ 0, "asc" ]], // Initially sort by the first column
-                    "pageLength": 10, // Show 10 rows per page
-                });
+                }
             });
-        </script>
-        <script>
-            $(document).ready(function() {
-                $("table tbody").sortable({
-                    axis: 'y',
-                    handle: 'td',
-                    update: function(event, ui) {
-                        // You can perform actions here when the sorting has been updated
-                    }
-                });
+
+            // Sorting functionality
+            $("table tbody").sortable({
+                axis: 'y',
+                handle: 'td',
+                update: function(event, ui) {
+                    // Actions when sorting is updated
+                }
             });
 
-        </script>
-        <script>
-            $(document).ready(function() {
-                $('.last-interaction-cell').hover(function() {
-                    let accountId = $(this).data('account-id');
-                    let $thisCell = $(this);  // Capture the hovered cell
-
-                    // Hide all other tooltips
-                    $('.last-interaction-cell').tooltip('hide');
-
-                    // Fetch last 30-day interaction info
+            // Tooltip initialization and handling for the .last-interaction-cell
+            $('body').on('mouseenter', '.last-interaction-cell', function() {
+                let accountId = $(this).data('account-id');
+                let $thisCell = $(this);
+                if (!$thisCell.attr('data-tooltip-content')) { // If tooltip content isn't fetched yet
                     $.get('/last30', { id: accountId }, function(data) {
-                        // Set custom attribute for tooltip content
                         $thisCell.attr('data-tooltip-content', data);
-
-                        // Show the tooltip
                         $thisCell.tooltip('show');
                     });
-                }, function() {
-                    // Hide the tooltip when the mouse leaves the cell
-                    $(this).tooltip('hide');
-                }).tooltip({
-                    trigger: 'manual',
-                    html: true,  // Allow HTML in tooltip
-                    title: function() {
-                        return $(this).attr('data-tooltip-content');
+                } else {
+                    $thisCell.tooltip('show');
+                }
+            }).on('mouseleave', '.last-interaction-cell', function() {
+                $(this).tooltip('hide');
+            });
+
+            $('.last-interaction-cell').tooltip({
+                trigger: 'manual',
+                html: true,
+                title: function() {
+                    return $(this).attr('data-tooltip-content');
+                }
+            });
+
+            // Tooltip handling for the .tier-cell and NOT .state-cell
+            $('body').on('mouseenter', '.tier-cell', function() {
+                let $thisCell = $(this);
+                if (!$thisCell.attr('data-tooltip-content')) {
+                    $thisCell.attr('data-tooltip-content', "Loading data...");
+                    $thisCell.tooltip('show');
+                } else {
+                    $thisCell.tooltip('show');
+                }
+            }).on('mouseleave', '.tier-cell', function() {
+                $(this).tooltip('hide');
+            });
+
+            $('.tier-cell').tooltip({
+                trigger: 'manual',
+                html: true,
+                title: function() {
+                    return $(this).attr('data-tooltip-content');
+                }
+            });
+
+            // Double click event for notes
+            $('body').on('dblclick', '.note-textarea', function(e) {
+                e.stopPropagation();  // Prevent the event from propagating
+                let currentNote = $(this).val();
+                let accountId = $(this).data('account-id');
+                $('#modalNoteTextarea').val(currentNote).data('account-id', accountId);
+                $('#editNotesModal').modal('show');
+            });
+
+            $('#saveModalNote').click(function() {
+                let updatedNote = $('#modalNoteTextarea').val();
+                let accountId = $('#modalNoteTextarea').data('account-id');
+                $.post('/save_notes', {
+                    account_id: accountId,
+                    note_text: updatedNote
+                }, function(response) {
+                    if(response.status === "success") {
+                        $('.note-textarea[data-account-id="' + accountId + '"]').val(updatedNote);
+                        $('#editNotesModal').modal('hide');
+                    } else {
+                        alert('Error: ' + response.message);
                     }
                 });
             });
-        </script>
-
-<script>
-    $(document).ready(function() {
-        // Double click event on the input field
-        $('.note-input').dblclick(function() {
-            // Lock all other notes before making current note editable
-            $('.note-input').attr('readonly', true).removeClass('editing');
-            $('.save-note-btn').hide();
-
-            // Make current note editable
-            $(this).removeAttr('readonly').addClass('editing');
-            $(this).next('.save-note-btn').show();
         });
-
-        // Save button click event
-        $('.save-note-btn').click(function() {
-            lockNote($(this).prev('.note-input'));
-        });
-
-        // Click outside of the editable area to lock it
-        $(document).click(function(event) {
-            if (!$(event.target).closest('.editing').length && !$(event.target).hasClass('save-note-btn')) {
-                lockNote($('.editing'));
-            }
-        });
-
-        function lockNote($noteInput) {
-            // Here, you can add an AJAX call to save the note to the server
-            // For now, I'll just revert the input to read-only and hide the save button
-
-            $noteInput.attr('readonly', true).removeClass('editing');  // Make input read-only and remove editing class
-            $noteInput.next('.save-note-btn').hide();  // Hide the save button
-        }
-    });
+    </script>
 
 
-</script>
-<script>
-    $(document).ready(function() {
-        $('.last-interaction-cell').tooltip({
-            trigger: 'hover',
-            delay: { "show": 500, "hide": 100 }, // Delay the tooltip appearance by 500ms
-            boundary: 'window', // Prevents the tooltip from going outside the window
-            placement: 'top',
-            html: true,  // Allow HTML in tooltip
-            title: function() {
-                return $(this).attr('data-tooltip-content');
-            }
-        }).on("mouseenter", function() {
-            var _this = this;
-            $(this).tooltip("show");
 
-            // Allow the tooltip to remain visible if hovered
-            $(".tooltip").on("mouseenter", function() {
-                $(_this).tooltip('show');
-            }).on("mouseleave", function() {
-                $(_this).tooltip('hide');
-            });
-
-        }).on("mouseleave", function() {
-            var _this = this;
-            setTimeout(function() {
-                if (!$(".tooltip:hover").length) {
-                    $(_this).tooltip("hide");
-                }
-            }, 100);
-        });
-    });
-
-    // Double click event on the textarea
-    $('.note-textarea').dblclick(function() {
-        // Lock all other notes before making current note editable
-        $('.note-textarea').attr('readonly', true).removeClass('editing');
-        $('.save-note-btn').hide();
-
-        // Make current note editable
-        $(this).removeAttr('readonly').addClass('editing');
-        $(this).next('.save-note-btn').show();
-    });
-
-    $(document).ready(function() {
-        // Handle the expand/collapse functionality
-        $('.note-expander').click(function(e) {
-            e.stopPropagation(); // Prevent any other events like the textarea becoming editable
-
-            var $textarea = $(this).siblings('.note-textarea');
-            if ($textarea.css('max-height') !== 'none') {
-                // If the textarea is limited in height, expand it
-                $textarea.css('max-height', 'none').css('height', 'auto');
-            } else {
-                // Otherwise, collapse it back to the original max height
-                $textarea.css('max-height', '150px').css('height', '150px');
-            }
-        });
-    });
-
-
-</script>
 
 </div>
 {% endblock %}

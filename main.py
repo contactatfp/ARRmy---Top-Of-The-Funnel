@@ -299,6 +299,60 @@ def notes_summary(account_id):
     return summary
 
 
+@app.route('/save_notes', methods=['POST'])
+def save_notes():
+    account_id = request.form.get('account_id')
+    note_text = request.form.get('note_text')
+
+    # Fetch the account using the account_id
+    account = Account.query.get(account_id)
+    if not account:
+        return jsonify(status="error", message="Account not found"), 404
+
+    # Update the Notes field
+    account.Notes = note_text
+    db.session.commit()
+
+    return jsonify(status="success", message="Notes updated successfully")
+
+
+
+@app.route('/tier', methods=['GET'])
+def get_tier():
+    account_id = request.args.get('id')
+    account = Account.query.get(account_id)
+
+    # get all opportunities for account that closed won in last 12 months
+    closed_won_opps = get_closed_won_opps()
+
+    # sort all opps for this for close in the last 12 months
+    closed_won_opps = list(filter(lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') > datetime.now() - timedelta(days=365), closed_won_opps))
+    closed_won_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, closed_won_opps))
+
+    # get all opportunities for account that are open
+    open_opps = get_open_opps()
+    open_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, open_opps))
+
+    # sort all opps for this for close in the next 6 months
+    open_opps = list(filter(lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') < datetime.now() + timedelta(days=180), open_opps))
+
+
+    # Format the data
+    formatted_data = f"<strong>Rank:</strong> {account.Rank if account else 'N/A'}<br>"
+    formatted_data += f"<strong>Closed Won Opportunities:</strong> {len(closed_won_opps)}<br>"
+    formatted_data += f"<strong>Open Opportunities:</strong> {len(open_opps)}<br>"
+    for opp in closed_won_opps:
+        formatted_data += f"<span class='closed-won-opp'><strong>Closed Won Opp:</strong> Closed on {opp['node']['CloseDate']['value']}</span><br>"
+    for opp in open_opps:
+        formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
+
+
+    return formatted_data
+
+
+
+
+
 @app.route('/sdr_dashboard')
 # @login_required
 def sdr_dashboard():
