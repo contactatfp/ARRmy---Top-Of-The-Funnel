@@ -74,19 +74,23 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-23 16:53:02')
+@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-25 17:41:31')
 def scheduled_rank_companies():
     try:
         with app.app_context():
             ranked_companies = rank_companies()
-            for rank, (company, score) in enumerate(ranked_companies):
-                company.Score = score
-                company.Rank = rank
-                db.session.add(company)
+            for company_id, (score, rank) in ranked_companies.items():
+                # search for account by company_id
+                company = Account.query.get(company_id)
+                if company:  # Check if company exists
+                    company.Score = score
+                    company.Rank = rank
+                    db.session.add(company)
             db.session.commit()
             logging.info("Companies ranked successfully.")
     except Exception as e:
         logging.error(f"Error in scheduled_rank_companies: {e}")
+
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
