@@ -5,8 +5,8 @@ import logging
 import os
 from datetime import datetime, timedelta
 from uuid import uuid4
-
-from langchain.chains.summarize import load_summarize_chain
+# import langchain
+# from langchain.chains.summarize import load_summarize_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
@@ -38,8 +38,10 @@ from flask_apscheduler import APScheduler
 from flask import current_app
 
 from app.rank_algo import rank_companies
+from app.prospecting import bio_blueprint
 
 app = Flask(__name__)
+app.register_blueprint(bio_blueprint)
 
 
 class Config:
@@ -74,7 +76,7 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-25 17:41:31')
+@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-30 13:07:01')
 def scheduled_rank_companies():
     try:
         with app.app_context():
@@ -90,7 +92,6 @@ def scheduled_rank_companies():
             logging.info("Companies ranked successfully.")
     except Exception as e:
         logging.error(f"Error in scheduled_rank_companies: {e}")
-
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
@@ -213,7 +214,7 @@ def login():
         }
 
         # Send the POST request to Salesforce
-        response = requests.post(url, headers=headers, data=payload)
+        response = requests.request("POST", url, headers=headers, data=payload)
 
         # Check if Salesforce login is successful
         if response.status_code == 200:
@@ -616,6 +617,75 @@ def account_details(account_id):
         abort(404, description="Account not found")
     return render_template('account_details.html', account=account)
 
+
+@app.route('/prospecting/<string:account_id>', methods=['GET'])
+def prospecting(account_id):
+    from langchain.chat_models import ChatOpenAI
+    from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    AIMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+    )
+    from app.prospecting import prospecting_overview, prospecting_products, prospecting_market, prospecting_recent_partnerships, prospecting_concerns, prospecting_achievements, prospecting_industry_pain, prospecting_operational_challenges, prospecting_latest_news, prospecting_recent_events, prospecting_customer_feedback
+    # Fetch data for the company
+    account = Account.query.get(account_id)
+    company_name = account.Name
+    overview = prospecting_overview(company_name)
+    products = prospecting_products(company_name)
+    market = prospecting_market(company_name)
+    achievements = prospecting_achievements(company_name)
+    industry_pain = prospecting_industry_pain(company_name)
+    concerns = prospecting_concerns(company_name)
+    operational_challenges = prospecting_operational_challenges(company_name)
+    latest_news = prospecting_latest_news(company_name)
+    recent_events = prospecting_recent_events(company_name)
+    customer_feedback = prospecting_customer_feedback(company_name)
+    recent_partnerships = prospecting_recent_partnerships(company_name)
+
+    company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
+
+
+
+    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+    template = (
+        "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
+        "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
+        "have an Overview (including leadership, products, market fit), Challenges, and News. The report should be 3 "
+        "paragraphs long. At the end there should be a recommendation for the rep on how to proceed to get a meeting "
+        "scheduled. The focus should be on solving a challenge for the customer. \n\n"
+        "Bio: {text}."
+    )
+    system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+    human_template = "{text}"
+    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
+    chat_prompt = ChatPromptTemplate.from_messages(
+        [system_message_prompt, human_message_prompt]
+    )
+
+    answer = chat(
+        chat_prompt.format_prompt(
+           text=company_bio
+        ).to_messages()
+    )
+    print(answer.content)
+    sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
+    overview_section = sections[0]
+    challenges_section = sections[1]
+    news_section = sections[2]
+    recommendation_section = sections[3]
+
+
+
+    return render_template(
+        'prospecting.html',
+        account=account,
+        overview_section=overview_section,
+        challenges_section=challenges_section,
+        news_section=news_section,
+        recommendation_section=recommendation_section
+            )
 
 def time_since_last_interaction(last_interaction_timestamp):
     now = datetime.now()

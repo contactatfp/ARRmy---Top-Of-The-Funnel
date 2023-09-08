@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 animate__animated animate__fadeIn">
+    <h2 class="mb-4">Account Prospecting</h2>
+
+    <!-- Progress Visual for Prospecting Steps -->
+    <div class="progress mb-3">
+        <div class="progress-bar" role="progressbar" id="prospecting-progress" style="width: 10%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+
+    <div class="card mb-3 animate__animated animate__flipInX">
+        <div class="card-header">
+            <h3 id="companyName" data-account-id="{{ account.Id }}">{{ account.Name }}</h3>
+
+            <!-- Tabbed navigation -->
+            <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                {% set tabs = ["Overview"] %}
+                {% for tab in tabs %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if loop.first else '' }}" id="{{ tab }}-tab" data-bs-toggle="tab" href="#{{ tab }}" role="tab" aria-controls="{{ tab }}" aria-selected="{{ 'true' if loop.first else 'false' }}">Prospecting {{ tab.replace('_', ' ').title() }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="card-body">
+            <!-- Tab content -->
+<!--            <div class="tab-content" id="myTabContent">-->
+<!--                <div class="tab-pane fade show active" id="Overview" role="tabpanel" aria-labelledby="Overview-tab">-->
+<!--                    <p>{{ overview }}</p>-->
+<!--                    <p>{{ products }}</p>-->
+<!--                    <p>{{ market }}</p>-->
+<!--                    <p>{{ achievements }}</p>-->
+<!--                </div>-->
+<!--                <div class="tab-pane fade" id="Pain Points" role="tabpanel" aria-labelledby="Pain Points-tab">-->
+<!--                    <p>{{ industry_pain }}</p>-->
+<!--                    <p>{{ concerns }}</p>-->
+<!--                    <p>{{ operational_challenges }}</p>-->
+<!--                </div>-->
+<!--                <div class="tab-pane fade" id="Updates" role="tabpanel" aria-labelledby="Updates-tab">-->
+<!--                    <p>{{ latest_news }}</p>-->
+<!--                    <p>{{ recent_events }}</p>-->
+<!--                    <p>{{ customer_feedback }}</p>-->
+<!--                    <p>{{ recent_partnerships }}</p>-->
+<!--                </div>-->
+<!--            </div>-->
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="Overview" role="tabpanel" aria-labelledby="Overview-tab">
+                    <h2>Overview</h2>
+                    <p>{{ overview_section }}</p>
+                    <h2>Challenges</h2>
+                    <p>{{ challenges_section }}</p>
+                    <h2>News</h2>
+                    <p>{{ news_section }}</p>
+                    <h2>Recommendation</h2>
+                    <p>{{ recommendation_section }}</p>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- Additional JavaScript code -->
+<script>
+    // Function to update the progress visual based on the active tab
+    // Function to update the progress visual based on the active tab
+    function updateProgress() {
+        var totalTabs = {{ tabs|length }};
+        var activeTabIndex = $('#myTab .nav-link.active').parent().index();
+        var progressPercentage = (activeTabIndex / totalTabs) * 100;
+        $('#prospecting-progress').css('width', progressPercentage + '%');
+    }
+
+    // Fetch data for the tab and update the content
+    function fetchDataForTab(tabId, companyName) {
+        var endpoint;
+        switch (tabId) {
+            case 'Overview':
+                endpoint = '/prospecting_bio';
+                break;
+            case 'Pain Points':
+                endpoint = '/prospecting_challenges';
+                break;
+            case 'Updates':
+                endpoint = '/prospecting_news';
+                break;
+            default:
+                return;
+        }
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ company: companyName })
+        })
+            .then(response => response.json())
+            .then(data => {
+                var content = Object.values(data)[0]; // Extract the first property's value
+                document.getElementById(tabId).innerHTML = content;
+            })
+            .catch(error => {
+                console.log('Error:', error);
+                document.getElementById(tabId).innerHTML = 'Error fetching data. Please try again later.';
+            });
+    }
+
+    // Update progress and fetch data when a new tab is clicked
+    $('#myTab .nav-link').on('shown.bs.tab', function(e) {
+        updateProgress();
+
+        var tabId = e.target.getAttribute('href').substr(1); // Remove the '#' from the href to get the tabId
+        var companyName = document.getElementById('companyName').innerText;
+        fetchDataForTab(tabId, companyName);
+    });
+
+</script>
+{#<!-- Add Bootstrap JS and jQuery -->#}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous">
+</script>
+<script src="../static/js/scripts.js"></script>
+{% endblock %}
