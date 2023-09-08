@@ -1,47 +1,38 @@
-import csv
-import io
 import json
 import logging
-import os
-from datetime import datetime, timedelta
-from uuid import uuid4
+from datetime import timedelta
+import pandas as pd
+import requests
+from dateutil.parser import parse
+from faker.generator import random
+from flask import Flask, render_template, redirect, url_for, flash, jsonify, abort, render_template_string
+from flask import request
+from flask_apscheduler import APScheduler
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
 # import langchain
 # from langchain.chains.summarize import load_summarize_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import Tool
 from langchain.utilities import GoogleSearchAPIWrapper
-import requests
-from dateutil.parser import parse
-from faker.generator import random
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort, render_template_string
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from sqlalchemy import DateTime, text
+from langchain.utilities import SQLDatabase
+from langchain_experimental.sql import SQLDatabaseChain
+from sqlalchemy import text
 from sqlalchemy.orm import joinedload
-from sqlalchemy import and_
-from werkzeug.utils import secure_filename
 
+from app.forms import EventForm
 from app.forms import SignupForm, LoginForm, InvitationForm
 from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address, Invitation, \
     InvitationStatus
-from flask_migrate import Migrate
-from app.forms import EventForm
-from flask import request
-import pandas as pd
-from sqlalchemy.exc import IntegrityError
-from langchain.chains.llm import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.utilities import SQLDatabase
-from langchain.llms import OpenAI
-from langchain_experimental.sql import SQLDatabaseChain
-from flask_apscheduler import APScheduler
-from flask import current_app
-
-from app.rank_algo import rank_companies
 from app.prospecting import bio_blueprint
+from app.rank_algo import rank_companies
+from flask_caching import Cache
 
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
+
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
 
 
 class Config:
@@ -603,89 +594,104 @@ def create_invitation(account_id, event_id):
     return render_template('create_invitation.html', title='Create Invitation', form=form, contacts=contacts,
                            event=event)
 
-    # Add the new invitation to the database
-    db.session.add(invitation)
-    db.session.commit()
-
-    return jsonify({'message': 'Invitation created successfully'}), 201
-
 
 @app.route('/account/<string:account_id>', methods=['GET'])
 def account_details(account_id):
     account = Account.query.get(account_id)
     if account is None:
         abort(404, description="Account not found")
-    return render_template('account_details.html', account=account)
+    cache_key = f"prospecting_data_{account_id}"
+    prospecting_data = cache.get(cache_key)
+
+    if prospecting_data:
+        # Pass the cached data to the template
+        return render_template('account_details.html', account=account, prospecting_data=prospecting_data)
+    else:
+        return render_template('account_details.html', account=account)
 
 
-@app.route('/prospecting/<string:account_id>', methods=['GET'])
-def prospecting(account_id):
+@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-08 11:11:11')
+def prospecting():
     from langchain.chat_models import ChatOpenAI
     from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
-    AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
     )
     from app.prospecting import prospecting_overview, prospecting_products, prospecting_market, prospecting_recent_partnerships, prospecting_concerns, prospecting_achievements, prospecting_industry_pain, prospecting_operational_challenges, prospecting_latest_news, prospecting_recent_events, prospecting_customer_feedback
-    # Fetch data for the company
-    account = Account.query.get(account_id)
-    company_name = account.Name
-    overview = prospecting_overview(company_name)
-    products = prospecting_products(company_name)
-    market = prospecting_market(company_name)
-    achievements = prospecting_achievements(company_name)
-    industry_pain = prospecting_industry_pain(company_name)
-    concerns = prospecting_concerns(company_name)
-    operational_challenges = prospecting_operational_challenges(company_name)
-    latest_news = prospecting_latest_news(company_name)
-    recent_events = prospecting_recent_events(company_name)
-    customer_feedback = prospecting_customer_feedback(company_name)
-    recent_partnerships = prospecting_recent_partnerships(company_name)
 
-    company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
+    with app.app_context():
+        top_accounts = Account.query.order_by(Account.Score.desc()).limit(2).all()
+    for account in top_accounts:
+        company_name = account.Name
+        overview = prospecting_overview(company_name)
+        products = prospecting_products(company_name)
+        market = prospecting_market(company_name)
+        achievements = prospecting_achievements(company_name)
+        industry_pain = prospecting_industry_pain(company_name)
+        concerns = prospecting_concerns(company_name)
+        operational_challenges = prospecting_operational_challenges(company_name)
+        latest_news = prospecting_latest_news(company_name)
+        recent_events = prospecting_recent_events(company_name)
+        customer_feedback = prospecting_customer_feedback(company_name)
+        recent_partnerships = prospecting_recent_partnerships(company_name)
 
-
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
-    template = (
-        "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
-        "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
-        "have an Overview (including leadership, products, market fit), Challenges, and News. The report should be 3 "
-        "paragraphs long. At the end there should be a recommendation for the rep on how to proceed to get a meeting "
-        "scheduled. The focus should be on solving a challenge for the customer. \n\n"
-        "Bio: {text}."
-    )
-    system_message_prompt = SystemMessagePromptTemplate.from_template(template)
-    human_template = "{text}"
-    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-
-    chat_prompt = ChatPromptTemplate.from_messages(
-        [system_message_prompt, human_message_prompt]
-    )
-
-    answer = chat(
-        chat_prompt.format_prompt(
-           text=company_bio
-        ).to_messages()
-    )
-    print(answer.content)
-    sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
-    overview_section = sections[0]
-    challenges_section = sections[1]
-    news_section = sections[2]
-    recommendation_section = sections[3]
+        company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
 
 
 
-    return render_template(
-        'prospecting.html',
-        account=account,
-        overview_section=overview_section,
-        challenges_section=challenges_section,
-        news_section=news_section,
-        recommendation_section=recommendation_section
-            )
+        chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+        template = (
+            "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
+            "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
+            "have an Overview (including leadership, products, market fit), Challenges, and News. The report should be 3 "
+            "paragraphs long and one recommendation. At the end the recommendation is for the rep on how to proceed to get a meeting "
+            "scheduled. The focus should be on solving a challenge for the customer. \n\n"
+            "Bio: {text}."
+        )
+        system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+        human_template = "{text}"
+        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
+        chat_prompt = ChatPromptTemplate.from_messages(
+            [system_message_prompt, human_message_prompt]
+        )
+
+        answer = chat(
+            chat_prompt.format_prompt(
+                text=company_bio
+            ).to_messages()
+        )
+        print(answer.content)
+        sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
+        overview_section = sections[0]
+        challenges_section = sections[1]
+        news_section = sections[2]
+        recommendation_section = sections[3]
+
+        cache_key = f"prospecting_data_{account.Id}"
+
+        data_to_cache = {
+            'account': account,
+            'overview_section': overview_section,
+            'challenges_section': challenges_section,
+            'news_section': news_section,
+            'recommendation_section': recommendation_section
+        }
+
+        try:
+            cache.set(cache_key, data_to_cache, timeout=24*60*60)  # Cache for 24 hours
+        except Exception as e:
+            print(f"Error setting cache: {e}")
+
+    # return render_template(
+    #     'prospecting.html',
+    #     account=account,
+    #     overview_section=overview_section,
+    #     challenges_section=challenges_section,
+    #     news_section=news_section,
+    #     recommendation_section=recommendation_section
+    #         )
 
 def time_since_last_interaction(last_interaction_timestamp):
     now = datetime.now()
