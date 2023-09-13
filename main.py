@@ -27,6 +27,7 @@ from app.models import db, User, RoleEnum, init_db, Account, Contact, Interactio
 from app.prospecting import bio_blueprint
 from app.rank_algo import rank_companies
 from flask_caching import Cache
+import faker
 
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
@@ -65,6 +66,100 @@ with open('config.json') as f:
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
+
+
+@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 10:06:11')
+def prospecting():
+    from langchain.chat_models import ChatOpenAI
+    from langchain.prompts.chat import (
+        ChatPromptTemplate,
+        SystemMessagePromptTemplate,
+        HumanMessagePromptTemplate,
+    )
+    from app.prospecting import prospecting_overview, prospecting_products, prospecting_market, \
+        prospecting_recent_partnerships, prospecting_concerns, prospecting_achievements, prospecting_industry_pain, \
+        prospecting_operational_challenges, prospecting_latest_news, prospecting_recent_events, \
+        prospecting_customer_feedback
+
+    with app.app_context():
+        top_accounts = Account.query.order_by(Account.Score.desc()).limit(2).all()
+        for account in top_accounts:
+            company_name = account.Name
+            overview = prospecting_overview(company_name)
+            products = prospecting_products(company_name)
+            market = prospecting_market(company_name)
+            achievements = prospecting_achievements(company_name)
+            industry_pain = prospecting_industry_pain(company_name)
+            concerns = prospecting_concerns(company_name)
+            operational_challenges = prospecting_operational_challenges(company_name)
+            latest_news = prospecting_latest_news(company_name)
+            recent_events = prospecting_recent_events(company_name)
+            customer_feedback = prospecting_customer_feedback(company_name)
+            recent_partnerships = prospecting_recent_partnerships(company_name)
+
+            account.Overview = overview
+            account.Products = products
+            account.Market = market
+            account.Achievements = achievements
+            account.Market = market
+            account.IndustryPain = industry_pain
+            account.Concerns = concerns
+            account.OperationalChallenges = operational_challenges
+            account.LatestNews = latest_news
+            account.RecentEvents = recent_events
+            account.CustomerFeedback = customer_feedback
+            account.RecentPartnerships = recent_partnerships
+
+            db.session.add(account)
+            db.session.commit()
+
+            company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
+
+            chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+            template = (
+                "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
+                "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
+                "have an Overview (including leadership, products, market fit), Challenges, and News. The report should be 1 "
+                "paragraph long which will make one recommendation. The recommendation is for the sales rep, who is not from the company bio, on how to proceed to get a meeting "
+                "scheduled with the company bio. The focus should be on solving a challenge for the customer. \n\n"
+                "Bio: {text}."
+            )
+            system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+            human_template = "{text}"
+            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
+            chat_prompt = ChatPromptTemplate.from_messages(
+                [system_message_prompt, human_message_prompt]
+            )
+
+            answer = chat(
+                chat_prompt.format_prompt(
+                    text=company_bio
+                ).to_messages()
+            )
+            print(answer.content)
+
+            # # PROBLEMATIC USING SECTIONS HARDCODED
+            # sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
+            # overview_section = sections[0]
+            # challenges_section = sections[1]
+            # news_section = sections[2]
+            # recommendation_section = sections[3]
+
+            cache_key = f"prospecting_data_{account.Id}"
+
+            data_to_cache = {
+                'account': account,
+                'overview_section': account.Overview,
+                'challenges_section': account.Concerns,
+                'news_section': account.RecentEvents,
+                'recommendation_section': answer.content
+            }
+
+            try:
+                cache.set(cache_key, data_to_cache, timeout=24 * 60 * 60)  # Cache for 24 hours
+            except Exception as e:
+                print(f"Error setting cache: {e}")
 
 
 @scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-30 13:07:01')
@@ -609,81 +704,6 @@ def account_details(account_id):
     else:
         return render_template('account_details.html', account=account)
 
-
-@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-08 11:11:11')
-def prospecting():
-    from langchain.chat_models import ChatOpenAI
-    from langchain.prompts.chat import (
-    ChatPromptTemplate,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-    )
-    from app.prospecting import prospecting_overview, prospecting_products, prospecting_market, prospecting_recent_partnerships, prospecting_concerns, prospecting_achievements, prospecting_industry_pain, prospecting_operational_challenges, prospecting_latest_news, prospecting_recent_events, prospecting_customer_feedback
-
-    with app.app_context():
-        top_accounts = Account.query.order_by(Account.Score.desc()).limit(2).all()
-    for account in top_accounts:
-        company_name = account.Name
-        overview = prospecting_overview(company_name)
-        products = prospecting_products(company_name)
-        market = prospecting_market(company_name)
-        achievements = prospecting_achievements(company_name)
-        industry_pain = prospecting_industry_pain(company_name)
-        concerns = prospecting_concerns(company_name)
-        operational_challenges = prospecting_operational_challenges(company_name)
-        latest_news = prospecting_latest_news(company_name)
-        recent_events = prospecting_recent_events(company_name)
-        customer_feedback = prospecting_customer_feedback(company_name)
-        recent_partnerships = prospecting_recent_partnerships(company_name)
-
-        company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
-
-
-
-        chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
-        template = (
-            "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
-            "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
-            "have an Overview (including leadership, products, market fit), Challenges, and News. The report should be 3 "
-            "paragraphs long and one recommendation. At the end the recommendation is for the rep on how to proceed to get a meeting "
-            "scheduled. The focus should be on solving a challenge for the customer. \n\n"
-            "Bio: {text}."
-        )
-        system_message_prompt = SystemMessagePromptTemplate.from_template(template)
-        human_template = "{text}"
-        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-
-        chat_prompt = ChatPromptTemplate.from_messages(
-            [system_message_prompt, human_message_prompt]
-        )
-
-        answer = chat(
-            chat_prompt.format_prompt(
-                text=company_bio
-            ).to_messages()
-        )
-        print(answer.content)
-        sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
-        overview_section = sections[0]
-        challenges_section = sections[1]
-        news_section = sections[2]
-        recommendation_section = sections[3]
-
-        cache_key = f"prospecting_data_{account.Id}"
-
-        data_to_cache = {
-            'account': account,
-            'overview_section': overview_section,
-            'challenges_section': challenges_section,
-            'news_section': news_section,
-            'recommendation_section': recommendation_section
-        }
-
-        try:
-            cache.set(cache_key, data_to_cache, timeout=24*60*60)  # Cache for 24 hours
-        except Exception as e:
-            print(f"Error setting cache: {e}")
-
     # return render_template(
     #     'prospecting.html',
     #     account=account,
@@ -692,6 +712,7 @@ def prospecting():
     #     news_section=news_section,
     #     recommendation_section=recommendation_section
     #         )
+
 
 def time_since_last_interaction(last_interaction_timestamp):
     now = datetime.now()
@@ -1296,6 +1317,75 @@ def generate_event_data():
         db.session.commit()
 
     return jsonify(data)
+
+
+@app.route('/generate_job_titles', methods=['GET', 'POST'])
+def add_job_titles():
+    fake = faker.Faker()
+    with app.app_context():
+        # Fetch all contacts
+        contacts = Contact.query.all()
+        job_titles = [
+            "Chief Executive Officer (CEO)",
+            "Chief Technology Officer (CTO)",
+            "Chief Information Officer (CIO)",
+            "Chief Operating Officer (COO)",
+            "Chief Financial Officer (CFO)",
+            "Chief Marketing Officer (CMO)",
+            "Chief Product Officer (CPO)",
+            "Director of Engineering",
+            "Director of Product",
+            "Director of Information Technology",
+            "Director of Marketing",
+            "Director of Sales",
+            "IT Manager",
+            "IT Project Manager",
+            "Product Manager",
+            "Product Owner",
+            "Engineering Manager",
+            "Lead Software Engineer",
+            "Lead Data Scientist",
+            "System Architect",
+            "Network Architect",
+            "Software Engineer",
+            "Front-end Developer",
+            "Back-end Developer",
+            "Full Stack Developer",
+            "Data Scientist",
+            "Data Engineer",
+            "Machine Learning Engineer",
+            "DevOps Engineer",
+            "System Administrator",
+            "Network Administrator",
+            "UX Designer",
+            "UI Designer",
+            "Graphic Designer",
+            "Web Developer",
+            "Mobile App Developer",
+            "QA Engineer",
+            "QA Manager",
+            "Business Analyst",
+            "Technical Support Specialist",
+            "Sales Engineer",
+            "Technical Account Manager",
+            "Solutions Architect",
+            "Cloud Consultant",
+            "Cloud Engineer",
+            "Database Administrator (DBA)",
+            "Security Analyst",
+            "Information Security Manager",
+            "Head of Research & Development",
+            "VP of Engineering"
+        ]
+
+        for contact in contacts:
+            # Randomly assign a job title from job_titles to the contact
+            contact.Title = random.choice(job_titles)
+
+        # Commit the changes to the database
+        db.session.commit()
+
+    return jsonify({"success": True})
 
 
 @app.route('/news', methods=['GET', 'POST'])

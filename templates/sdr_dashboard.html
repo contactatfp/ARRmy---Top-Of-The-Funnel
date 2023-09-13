@@ -78,7 +78,7 @@
             <th>Events</th>
             <th>Top 5 Contacts</th>
             <th>Menu</th>
-            <th>Prospecting</th>
+<!--            <th>Prospecting</th>-->
         </tr>
         </thead>
         <tbody>
@@ -99,14 +99,14 @@
                 </td>
 
 
-                {#            make an editable input for cell#}
+
                 <td>
                     <div class="input-group noteGroup">
                         <textarea class="form-control note-textarea" data-account-id="{{ account.Id }}" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
                         <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
-{#                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">#}
-{#                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>#}
-{#                        </svg>#}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">#}
+                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>#}
+                        </svg>
                     </div>
 
 
@@ -138,14 +138,14 @@
                         </svg>
                     </button>
                 </td>
-                <td>
-                    <button type="button" class="btn btn-info"  data-account-id="{{ account.Id }}"><a href="#">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
-                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
-                        </svg>
-                        </a>
-                    </button>
-                </td>
+<!--                <td>-->
+<!--                    <button type="button" class="btn btn-info"  data-account-id="{{ account.Id }}"><a href="#">-->
+<!--                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">-->
+<!--                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>-->
+<!--                        </svg>-->
+<!--                        </a>-->
+<!--                    </button>-->
+<!--                </td>-->
 
             </tr>
 

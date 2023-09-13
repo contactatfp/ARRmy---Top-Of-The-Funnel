@@ -1,19 +1,13 @@
-import os, json
-from langchain import GoogleSearchAPIWrapper
-from langchain.chat_models import ChatOpenAI
-from langchain.tools import Tool
-from langchain.chains import create_extraction_chain
-from app.models import Account
-import pprint
+import json
+import os
+
 from flask import jsonify, request, Blueprint
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
-    AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
 with open('config.json') as f:
     config = json.load(f)
@@ -23,21 +17,20 @@ os.environ["SERPER_API_KEY"] = config['SERPER_API_KEY']
 from langchain.utilities import GoogleSerperAPIWrapper
 
 bio_blueprint = Blueprint('bio_blueprint', __name__)
+search = GoogleSerperAPIWrapper()
+chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
 
 
 @bio_blueprint.route('/generate_bio', methods=['POST'])
 def generate_bio():
     data = request.json  # Expecting the search results in JSON format in the POST request
     bio = prospecting_overview(data)
+
     return jsonify({"bio": bio})
 
 
 def prospecting_overview(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"{company} company")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
-
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to a company overview. "
         "KnowledgeGraph: {text}."
@@ -62,10 +55,7 @@ def prospecting_overview(company):
 
 
 def prospecting_products(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"{company} company products or services")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to a list of products and "
@@ -92,10 +82,7 @@ def prospecting_products(company):
 
 
 def prospecting_market(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"{company} company target market")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -121,10 +108,7 @@ def prospecting_market(company):
 
 
 def prospecting_achievements(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"{company} company target market")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -150,10 +134,7 @@ def prospecting_achievements(company):
 
 
 def prospecting_industry_pain(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"Major challenges faced by companies in {company} industry in 2023")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -180,10 +161,7 @@ def prospecting_industry_pain(company):
 
 
 def prospecting_concerns(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"Top concerns for CEOs in {company}'s industry")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -210,10 +188,7 @@ def prospecting_concerns(company):
 
 
 def prospecting_operational_challenges(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"Operational challenges in {company}'s industry")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -239,11 +214,58 @@ def prospecting_operational_challenges(company):
     return answer.content
 
 
-def prospecting_latest_news(company):
-    search = GoogleSerperAPIWrapper()
-    results = search.results(f"{company} latest news or press releases")
+@bio_blueprint.route('/prospecting_with_contacts', methods=['POST', 'GET'])
+def prospecting_with_contacts(company_id='001Dp00000KBTVRIA5'):
+    from main import Account, app, Contact
 
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
+    with app.app_context():
+        company = Account.query.get(company_id).Name
+        # contacts = Account.query.get(company_id).Contacts
+
+        # do a sql query to get the contacts for the company called test
+        contacts = Contact.query.filter_by(AccountId=company_id).all()
+
+    company_dict = {}
+    for employee in contacts:
+        company_dict[employee.Name] = employee.Title
+
+    template = (
+        "You are a helpful assistant that takes in a company directory of its employees and their roles, a company "
+        "overview, company challenges, company recent news. This information is the result of a sales representative "
+        "researching a potential customer. Your goal is to help provide a way in to the company by providing the "
+        "sales rep a job pain point for each contact while keeping in mind the job title, company, company industry, "
+        "company size.   It will be returned in the following format: 'company_name': 'recommendation'.  Take your "
+        "time and read through all the company information and think it through step by step. \n\n"
+
+        "Dictionary: {text}."
+    )
+
+    overview = prospecting_overview(company)
+    products = prospecting_products(company)
+    market = prospecting_market(company)
+    achievements = prospecting_achievements(company)
+
+    bio = f"{overview}\n\n {products}\n\n {market}\n\n {company_dict}\n\n {achievements}"
+
+    system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+    human_message_prompt = HumanMessagePromptTemplate.from_template("{text}")
+
+    chat_prompt = ChatPromptTemplate.from_messages(
+        [system_message_prompt, human_message_prompt]
+    )
+
+    # get a chat completion from the formatted messages
+    answer = chat(
+        chat_prompt.format_prompt(
+            text=f"{bio}"
+        ).to_messages()
+    )
+
+    return answer.content
+
+
+def prospecting_latest_news(company):
+    results = search.results(f"{company} latest news or press releases")
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -269,10 +291,7 @@ def prospecting_latest_news(company):
 
 
 def prospecting_recent_events(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"{company} participation in recent industry events or webinars")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -298,10 +317,7 @@ def prospecting_recent_events(company):
 
 
 def prospecting_customer_feedback(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"Customer testimonials or feedback for {company}")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -327,10 +343,7 @@ def prospecting_customer_feedback(company):
 
 
 def prospecting_recent_partnerships(company):
-    search = GoogleSerperAPIWrapper()
     results = search.results(f"Recent partnerships, mergers, or acquisitions involving {company}")
-
-    chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=config['openai_api-key'])
 
     template = (
         "You are a helpful assistant that takes in a company knowledgeGraph and converts it to an overview of the "
@@ -354,6 +367,7 @@ def prospecting_recent_partnerships(company):
     print(answer.content)
     return answer.content
 
+
 @bio_blueprint.route('/prospecting_bio', methods=['POST'])
 def prospecting_bio():
     data = request.json
@@ -367,6 +381,7 @@ def prospecting_bio():
 
     return jsonify({"bio": bio})
 
+
 @bio_blueprint.route('/prospecting_challenges', methods=['POST'])
 def prospecting_challenges():
     data = request.json
@@ -378,6 +393,7 @@ def prospecting_challenges():
     challenges = f"{industry_pain}\n\n {concerns}\n\n {operational_challenges}"
 
     return jsonify({"challenges": challenges})
+
 
 @bio_blueprint.route('/prospecting_news', methods=['POST'])
 def prospecting_news():
@@ -391,6 +407,3 @@ def prospecting_news():
     news = f"{latest_news}\n\n {recent_events}\n\n {customer_feedback}\n\n {recent_partnerships}"
 
     return jsonify({"news": news})
-
-
-
