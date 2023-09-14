@@ -50,9 +50,6 @@
         font-weight: bold;
     }
 
-
-
-
 </style>
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -132,7 +129,7 @@
                 </td>
 
                 <td>
-                    <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}">
+                    <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}" data-account-name="{{ account.Name }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
                             <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
                         </svg>
@@ -153,45 +150,115 @@
         </tbody>
     </table>
 
-        <div class="modal fade" id="viewContactModal" tabindex="-1" aria-labelledby="viewContactModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="log_a_call">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="viewContactModalLabel">Contact Details</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+
+    <!-- Menu Modal -->
+    <div class="modal fade" id="viewContactModal" tabindex="-1" aria-labelledby="viewContactModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewContactModalLabel">Account History for <span id="modalAccountName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" id="calls-tab" data-bs-toggle="tab" href="#calls" role="tab" aria-controls="calls" aria-selected="true">Calls</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="video-meetings-tab" data-bs-toggle="tab" href="#video-meetings" role="tab" aria-controls="video-meetings" aria-selected="false">Video Meetings</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="email-tab" data-bs-toggle="tab" href="#email" role="tab" aria-controls="email" aria-selected="false">Email</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="contact-recommendations-tab" data-bs-toggle="tab" href="#contact-recommendations" role="tab" aria-controls="contact-recommendations" aria-selected="false">Contact Recommendations</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="calls" role="tabpanel" aria-labelledby="calls-tab">
+                            <!-- Calls content goes here -->
+                            <br><br>
+                            <h2>No calls to display</h2>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <strong>Account:</strong> <span id="contactAccount"></span>
-                            </div>
+                        <div class="tab-pane fade" id="video-meetings" role="tabpanel" aria-labelledby="video-meetings-tab">
+                            <!-- Video meetings content goes here -->
+                            <br><br>
 
-                            <div class="mb-3">
-                                <label for="callSubject" class="form-label">Call Subject</label>
-                                <input type="text" class="form-control" id="callSubject" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="callDescription" class="form-label">Call Description</label>
-                                <input type="text" class="form-control" id="callDescription" required>
-                            </div>
-                            {#                        add dropdown for contacts from the account#}
-                            <div class="mb-3">
-                                <label for="contact" class="form-label">Contact</label>
-                                <select class="form-select" id="contact" required>
-                                    <option selected disabled value="">Select a Contact</option>
-                                    {% for contact in contacts %}
-                                        <option value="{{ contact.id }}">{{ contact.Name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                            <h2>No video meetings to display</h2>
+                        </div>
+                        <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+                            <!-- Email content goes here -->
+                            <br><br>
 
-                            <!-- Log a Call button -->
-                            <button type="button" class="btn btn-success" id="logCallButton">Log a Call</button>
+                            <h2>No Email to display</h2>
+                        </div>
+                        <div class="tab-pane fade" id="contact-recommendations" role="tabpanel" aria-labelledby="contact-recommendations-tab">
+                            <!-- Contact recommendations content goes here -->
+                            <br><br>
+                            <h2>No contact recommendations to display</h2>
                         </div>
                     </div>
+                    <div id="makeCallView" style="display: none;">
+                        <button class="btn btn-secondary backToMain" style="float: left">Back</button>
+                        <h1>Make Call</h1>
+                        <select id="contactDropdown">
+                            <option value="">Select Contact</option>
+                            <!-- Add options for each contact -->
+<!--                             <option value="phoneNumber">Contact Name</option>-->
+                        </select>
+                        <button id="addContactBtn" style="display: none;">Add Contact</button>
+                        <input type="text" id="phoneNumberInput" placeholder="Enter phone number" style="display: none;">
+                        <a href="#" id="callBtn" class="btn btn-primary">Call</a>
+                    </div>
+                    <!-- Video Meeting Sub-view -->
+                    <div id="videoMeetingView" style="display: none;">
+                        <button class="btn btn-secondary backToMain" style="float: left">Back</button>
+                        <h1>Start Video Meeting</h1>
+                        <select id="videoContactDropdown">
+                            <option value="">Select Contact</option>
+                            <!-- Add options for each contact -->
+                            <!-- <option value="emailAddress">Contact Name</option> -->
+                        </select>
+
+                        <button id="addVideoContactBtn" style="display: none;">Add Contact</button>
+                        <a href="#" id="startMeetingBtn" class="btn btn-primary">Start Meeting</a>
+
+                    </div>
+
+                    <!-- Email Sub-view -->
+                    <div id="emailView" style="display: none;">
+                        <button class="btn btn-secondary backToMain" style="float: left">Back</button>
+                        <h1>Send Email</h1>
+                        <select id="emailContactDropdown">
+                            <option value="">Select Contact</option>
+                            <!-- Add options for each contact -->
+                            <!-- <option value="emailAddress">Contact Name</option> -->
+                        </select>
+                        <button id="addEmailContactBtn" style="display: none;">Add Contact</button>
+                        <textarea id="emailContent" placeholder="Write your email..."></textarea>
+                        <a href="#" id="sendEmailBtn" class="btn btn-primary">Send Email</a>
+
+                    </div>
+
+
                 </div>
+                <div class="modal-footer d-flex justify-content-center">
+                    <button type="button" class="btn btn-primary m-2" style="font-size: 24px;">
+                        <i class="fas fa-phone fa"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary m-2" style="font-size: 24px;">
+                        <i class="fas fa-video fa"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary m-2" style="font-size: 24px;">
+                        <i class="fas fa-envelope fa"></i>
+                    </button>
+                </div>
+
             </div>
         </div>
+    </div>
 
 
 
@@ -380,7 +447,88 @@
                 });
             });
         });
+
+        function resetModalView() {
+            // Hide sub-views and show the main content
+            $('#makeCallView, #videoMeetingView, #emailView').hide();
+            $('#myTabContent, #myTab').show();
+        }
+
+        // When the phone button is clicked
+        $('.fa-phone').parent().click(function() {
+            $('#makeCallView').siblings('div:visible').hide(); // Hide other visible subviews
+            $('#myTabContent, #myTab').hide();
+            $('#makeCallView').show();
+        });
+
+        // When the video button is clicked
+        $('.fa-video').parent().click(function() {
+            $('#videoMeetingView').siblings('div:visible').hide(); // Hide other visible subviews
+            $('#myTabContent, #myTab').hide();
+            $('#videoMeetingView').show();
+        });
+
+        // When the email button is clicked
+        $('.fa-envelope').parent().click(function() {
+            $('#emailView').siblings('div:visible').hide(); // Hide other visible subviews
+            $('#myTabContent, #myTab').hide();
+            $('#emailView').show();
+        });
+
+        // Back navigation to main view
+        $('.backToMain').click(function() {
+            resetModalView();
+        });
+
+
+
+        // When a contact is selected from the dropdown
+        $('#contactDropdown').change(function() {
+            if ($(this).val()) {
+                // If a contact is selected, show the phone number input
+                $('#phoneNumberInput').show().val($(this).val());
+            } else {
+                // Otherwise, hide it
+                $('#phoneNumberInput').hide();
+            }
+        });
+
+        // When the phone number input changes
+        $('#phoneNumberInput').keyup(function() {
+            // If there's a value in the input, enable the call button
+            if ($(this).val()) {
+                $('#callBtn').removeAttr('disabled');
+            } else {
+                $('#callBtn').attr('disabled', 'disabled');
+            }
+        });
+
+        // Ensure the main view always starts when the modal is opened or clicked away
+        $('#viewContactModal').on('hide.bs.modal', function() {
+            resetModalView();
+        });
+
+        $('#viewContactModal').on('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = $(event.relatedTarget);
+
+            // Extract data from button
+            var accountName = button.data('account-name');
+
+            // Update the modal's content
+            var modal = $(this);
+            modal.find('#modalAccountName').text(accountName);
+        });
+
+        function fetchInteractions(accountId) {
+            $.get('/get_interactions', { account_id: accountId }, function(interactions) {
+                // Clearing previous interactions
+                $("#calls, #video-meetings, #email").empty();
+            });
+        }
+
     </script>
+
 
 </div>
 {% endblock %}

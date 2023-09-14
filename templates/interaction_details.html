@@ -7,6 +7,8 @@
         <p><strong>Contact:</strong> {{ contact.Name }}</p>
         <p><strong>Time:</strong> {{ interaction.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</p>
         <p><strong>Message:</strong> {{ interaction.description }}</p>
+        <p><strong>Type:</strong> {{ interaction.interaction_type }}</p>
+
 
         <a href="{{ url_for('sdr_dashboard') }}">Back to Dashboard</a>
     </div>

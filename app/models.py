@@ -95,6 +95,7 @@ class Account(db.Model):
     RecentEvents = db.Column(db.Text)
     CustomerFeedback = db.Column(db.Text)
     RecentPartnerships = db.Column(db.Text)
+    Recommendations = db.Column(db.Text)
     Headcount = db.Column(db.Integer)
     TechColumn = db.Column(db.String)
     IntegrationStatus = db.Column(db.Enum('integration', 'neutral', 'competitor', name='integration_status_enum'))
@@ -231,6 +232,10 @@ class InteractionType(enum.Enum):
     call = "Call"
     email = "Email"
     meeting = "Meeting"
+
+    def to_json(self):
+        return self.value
+
 
 
 class Interaction(db.Model):

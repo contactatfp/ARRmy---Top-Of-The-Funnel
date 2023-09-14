@@ -68,7 +68,7 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 10:06:11')
+@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 13:12:11')
 def prospecting():
     from langchain.chat_models import ChatOpenAI
     from langchain.prompts.chat import (
@@ -138,6 +138,9 @@ def prospecting():
                 ).to_messages()
             )
             print(answer.content)
+            account.Recommendations = answer.content
+            db.session.add(account)
+            db.session.commit()
 
             # # PROBLEMATIC USING SECTIONS HARDCODED
             # sections = answer.content.split('\n\n')  # Assuming paragraphs are separated by two newlines
@@ -734,6 +737,14 @@ def time_since_last_interaction(last_interaction_timestamp):
 
 
 app.jinja_env.filters['time_since'] = time_since_last_interaction
+
+
+@app.route('/get_interactions', methods=['GET'])
+def get_interactions():
+    account_id = request.args.get('account_id')
+    interactions = Interaction.query.filter_by(account_id=account_id).all()
+    interactions_data = [{"type": interaction.interaction_type, "description": interaction.description, "timestamp": interaction.timestamp.strftime('%Y-%m-%d %H:%M:%S'), "user_id": interaction.user_id} for interaction in interactions]
+    return jsonify(interactions_data)
 
 
 @app.route('/interaction_details/<int:interaction_id>')
