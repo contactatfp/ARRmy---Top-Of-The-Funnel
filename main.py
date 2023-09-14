@@ -20,7 +20,7 @@ from langchain_experimental.sql import SQLDatabaseChain
 from sqlalchemy import text
 from sqlalchemy.orm import joinedload
 
-
+import main
 from app.forms import EventForm
 from app.forms import SignupForm, LoginForm, InvitationForm
 from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address, Invitation, \
@@ -284,11 +284,11 @@ def index():
     get_data()
     # if user is logged in, redirect to appropriate dashboard
     if current_user.is_authenticated:
-        g.accounts = Account.query.all()
+        # g.accounts = Account.query.all()
         if current_user.role == RoleEnum.sales_rep:
             return redirect(url_for('sales_dashboard'))
         elif current_user.role == RoleEnum.sdr:
-            return redirect(url_for('sdr_dashboard', accounts=g.accounts))
+            return redirect(url_for('sdr_dashboard'))
     return render_template('index.html')
 
 
@@ -336,6 +336,9 @@ def login():
                 db.session.add(new_user)
                 db.session.commit()
                 login_user(new_user)
+                get_data()
+                # fix later
+                return redirect(url_for('sdr_dashboard'))
             else:
                 user = User.query.filter_by(username=form.username.data).first()
                 login_user(user)
@@ -470,7 +473,8 @@ def get_tier():
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
     if current_user.role == RoleEnum.sdr:
-        g.accounts = Account.query.all()
+
+        accounts = Account.query.all()
 
         events = []
 
@@ -490,7 +494,7 @@ def sdr_dashboard():
         #
 
         # Determine color for each account based on opp status
-        for account in g.accounts:
+        for account in accounts:
             top5_dict[account.Id] = get_top_5_contacts_using_rank_contact(account.Id)
             account_id = account.Id
 
@@ -506,7 +510,7 @@ def sdr_dashboard():
                 Interaction.timestamp.desc()).first()
             return interaction
 
-        return render_template('sdr_dashboard.html', accounts=g.accounts, get_last_interaction=get_last_interaction,
+        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
                                account_event_counts=account_event_counts, events=events, top5=top5_dict,
                                status_color=color_dict, closed_opps_by_account=closed_opps_by_account,
                                open_opps_by_account=open_opps_by_account)
@@ -1664,6 +1668,19 @@ def parse_dates(record, date_fields):
             record[key] = parse(value)
 
     return record
+
+
+@app.route('/data', methods=['GET', 'POST'])
+def data():
+    contact = main.contacts()
+    events = main.generate_event_data()
+    interactions = main.generate_interaction_data()
+    jobs = main.add_job_titles()
+
+    rank = main.scheduled_rank_companies()
+    prospect = main.prospecting()
+
+    return redirect(url_for('sdr_dashboard'))
 
 
 def process_response(response, model):
