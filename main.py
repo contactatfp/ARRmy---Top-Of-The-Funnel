@@ -69,7 +69,7 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-14 13:33:01')
+@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-14 20:37:01')
 def prospecting():
     from langchain.chat_models import ChatOpenAI
     from langchain.prompts.chat import (
@@ -171,7 +171,7 @@ def prospecting():
 #     prospecting()
 
 
-@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-09-14 13:33:01')
+@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-09-14 20:35:01')
 def scheduled_rank_companies():
     try:
         with app.app_context():
