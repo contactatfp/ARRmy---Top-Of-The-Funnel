@@ -5,7 +5,7 @@ import pandas as pd
 import requests
 from dateutil.parser import parse
 from faker.generator import random
-from flask import Flask, render_template, redirect, url_for, flash, jsonify, abort, render_template_string
+from flask import Flask, render_template, redirect, url_for, flash, jsonify, abort, render_template_string, g
 from flask import request
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -19,6 +19,7 @@ from langchain.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from sqlalchemy import text
 from sqlalchemy.orm import joinedload
+
 
 from app.forms import EventForm
 from app.forms import SignupForm, LoginForm, InvitationForm
@@ -68,7 +69,7 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-# @scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 13:12:11')
+@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-14 13:33:01')
 def prospecting():
     from langchain.chat_models import ChatOpenAI
     from langchain.prompts.chat import (
@@ -165,12 +166,12 @@ def prospecting():
                 print(f"Error setting cache: {e}")
 
 
-@app.cli.command("prospecting-scheduler")
-def prospecting_command():
-    prospecting()
+# @app.cli.command("prospecting-scheduler")
+# def prospecting_command():
+#     prospecting()
 
 
-# @scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-30 13:07:01')
+@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-09-14 13:33:01')
 def scheduled_rank_companies():
     try:
         with app.app_context():
@@ -283,10 +284,11 @@ def index():
     get_data()
     # if user is logged in, redirect to appropriate dashboard
     if current_user.is_authenticated:
+        g.accounts = Account.query.all()
         if current_user.role == RoleEnum.sales_rep:
             return redirect(url_for('sales_dashboard'))
         elif current_user.role == RoleEnum.sdr:
-            return redirect(url_for('sdr_dashboard', accounts=Account.query.all()))
+            return redirect(url_for('sdr_dashboard', accounts=g.accounts))
     return render_template('index.html')
 
 
@@ -337,11 +339,12 @@ def login():
             else:
                 user = User.query.filter_by(username=form.username.data).first()
                 login_user(user)
+                accounts = Account.query.all()
                 # Redirect to appropriate dashboard
                 if user.role == RoleEnum.sales_rep:
                     return redirect(url_for('sales_dashboard'))
                 elif user.role == RoleEnum.sdr:
-                    return redirect(url_for('sdr_dashboard', accounts=Account.query.all()))
+                    return redirect(url_for('sdr_dashboard', accounts=accounts))
 
                 else:
                     return redirect(url_for('index'))
@@ -462,12 +465,13 @@ def get_tier():
     return formatted_data
 
 
-@app.route('/sdr_dashboard')
+@app.route('/sdr_dashboard', methods=['POST', 'GET'])
 # @login_required
 def sdr_dashboard():
     # Check if the logged-in user is an SDR
     if current_user.role == RoleEnum.sdr:
-        accounts = Account.query.all()
+        g.accounts = Account.query.all()
+
         events = []
 
         # Initialize an empty dictionary to store the number of events for each account
@@ -486,7 +490,7 @@ def sdr_dashboard():
         #
 
         # Determine color for each account based on opp status
-        for account in accounts:
+        for account in g.accounts:
             top5_dict[account.Id] = get_top_5_contacts_using_rank_contact(account.Id)
             account_id = account.Id
 
@@ -502,7 +506,7 @@ def sdr_dashboard():
                 Interaction.timestamp.desc()).first()
             return interaction
 
-        return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
+        return render_template('sdr_dashboard.html', accounts=g.accounts, get_last_interaction=get_last_interaction,
                                account_event_counts=account_event_counts, events=events, top5=top5_dict,
                                status_color=color_dict, closed_opps_by_account=closed_opps_by_account,
                                open_opps_by_account=open_opps_by_account)
