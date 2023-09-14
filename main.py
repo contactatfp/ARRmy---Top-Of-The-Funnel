@@ -68,7 +68,7 @@ SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
 SALESFORCE_API_OPPS = "/services/data/v58.0/graphql"
 
 
-@scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 13:12:11')
+# @scheduler.task('interval', id='prospecting_task', days=30, start_date='2023-09-13 13:12:11')
 def prospecting():
     from langchain.chat_models import ChatOpenAI
     from langchain.prompts.chat import (
@@ -165,7 +165,12 @@ def prospecting():
                 print(f"Error setting cache: {e}")
 
 
-@scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-30 13:07:01')
+@app.cli.command("prospecting-scheduler")
+def prospecting_command():
+    prospecting()
+
+
+# @scheduler.task('interval', id='do_rank_companies', days=1, start_date='2023-08-30 13:07:01')
 def scheduled_rank_companies():
     try:
         with app.app_context():
@@ -181,6 +186,11 @@ def scheduled_rank_companies():
             logging.info("Companies ranked successfully.")
     except Exception as e:
         logging.error(f"Error in scheduled_rank_companies: {e}")
+
+
+@app.cli.command("rank-companies")
+def rank_companies_command():
+    scheduled_rank_companies()
 
 
 @app.route('/rank_contact/<contact_id>', methods=['GET'])
@@ -743,7 +753,9 @@ app.jinja_env.filters['time_since'] = time_since_last_interaction
 def get_interactions():
     account_id = request.args.get('account_id')
     interactions = Interaction.query.filter_by(account_id=account_id).all()
-    interactions_data = [{"type": interaction.interaction_type, "description": interaction.description, "timestamp": interaction.timestamp.strftime('%Y-%m-%d %H:%M:%S'), "user_id": interaction.user_id} for interaction in interactions]
+    interactions_data = [{"type": interaction.interaction_type, "description": interaction.description,
+                          "timestamp": interaction.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                          "user_id": interaction.user_id} for interaction in interactions]
     return jsonify(interactions_data)
 
 
