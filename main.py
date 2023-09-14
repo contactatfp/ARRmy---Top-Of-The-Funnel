@@ -347,7 +347,7 @@ def login():
                 if user.role == RoleEnum.sales_rep:
                     return redirect(url_for('sales_dashboard'))
                 elif user.role == RoleEnum.sdr:
-                    return redirect(url_for('sdr_dashboard', accounts=accounts))
+                    return redirect(url_for('sdr_dashboard'))
 
                 else:
                     return redirect(url_for('index'))
