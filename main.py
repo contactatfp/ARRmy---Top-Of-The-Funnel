@@ -1678,7 +1678,7 @@ def data():
     jobs = main.add_job_titles()
 
     rank = main.scheduled_rank_companies()
-    prospect = main.prospecting()
+    # prospect = main.prospecting()
 
     return redirect(url_for('sdr_dashboard'))
 
