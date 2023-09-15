@@ -1218,20 +1218,24 @@ def get_contacts():
     return jsonify(contacts_list)
 
 
+from threading import Thread
+
 @app.route('/contact/<contact_id>')
 def contact_details(contact_id):
     from app.prospecting import prospecting_with_contact
     contact = Contact.query.get(contact_id)
     associated_account = Account.query.get(contact.AccountId)
-    if contact.Recommendation is None:
-        # prospect_company(contact_id)
-        rec = prospecting_with_contact(contact_id)
-        db.session.add(contact)
-    else:
-        rec = contact.Recommendation
-        db.session.add(contact)
+    rec = contact.Recommendation
+    if rec is None:
+        # make rec a background task
+        def background_task():
+            with app.app_context():
+                contact.Recommendation = prospecting_with_contact(contact_id)
+                db.session.add(contact)
+                db.session.commit()
 
-    db.session.commit()
+        thread = Thread(target=background_task)
+        thread.start()
     return render_template('contact_detail.html', contact=contact, associated_account=associated_account, rec=rec)
 
 

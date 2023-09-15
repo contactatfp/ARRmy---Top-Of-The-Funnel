@@ -31,8 +31,9 @@
             <div class="col-md-10 col-sm-12">
                 <hr>
                 <h4>Recommendation</h4>
-                <p><strong>{{ contact.Name }}</strong> {{ rec }}</p>
+                <p><strong>{{ contact.Name }}</strong> {{ rec if rec else 'Pending' }}</p>
             </div>
+
 
         </div>
     </div>
