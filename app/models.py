@@ -327,6 +327,7 @@ class Contact(db.Model):
     Level__c = db.Column(db.String)
     Languages__c = db.Column(db.String)
     JobRank = db.Column(db.Integer)
+    Recommendation = db.Column(db.Text)
 
     IsPartnerRep = db.Column(db.Boolean, default=False)
     LinkedInUrl = db.Column(db.String)

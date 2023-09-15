@@ -215,6 +215,65 @@ def prospecting_operational_challenges(company):
 
 
 @bio_blueprint.route('/prospecting_with_contacts', methods=['POST', 'GET'])
+def prospecting_with_contact(contact_id):
+    from main import Account, app, Contact, db
+
+    with app.app_context():
+        contact = Contact.query.get(contact_id)
+        company = contact.AccountId
+        company = Account.query.get(company).Name
+
+        contact_dict = {}
+        contact_dict[contact.Name] = contact.Title
+
+
+        template = (
+            "You are a helpful assistant that takes in about one employee, a company "
+            "overview, company challenges, company recent news. This information is the result of a sales representative "
+            "researching a potential customer. Your goal is to help provide a way in to the company by providing the "
+            "sales rep a job pain point for each contact while keeping in mind the job title, company, company industry, "
+            "company size.   It will be returned in the following format: 'employee_name': 'recommendation'.  Take your "
+            "time and read through all the company information and think it through step by step. \n\n"
+    
+            "Info: {text}."
+        )
+        account = Account.query.get(contact.AccountId)
+        if account.Overview is None:
+            overview = prospecting_overview(company)
+            products = prospecting_products(company)
+            market = prospecting_market(company)
+            achievements = prospecting_achievements(company)
+        else:
+            overview = Account.Overview
+            products = Account.Products
+            market = Account.Market
+            achievements = Account.Achievements
+
+
+        bio = f"{overview}\n\n {products}\n\n {market}\n\n {contact_dict}\n\n {achievements}"
+
+        system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+        human_message_prompt = HumanMessagePromptTemplate.from_template("{text}")
+
+        chat_prompt = ChatPromptTemplate.from_messages(
+            [system_message_prompt, human_message_prompt]
+        )
+
+            # get a chat completion from the formatted messages
+        answer = chat(
+            chat_prompt.format_prompt(
+                text=f"{bio}"
+            ).to_messages()
+        )
+        contact.Recommendation = answer.content
+        db.session.add(contact)
+        db.session.add(account)
+        db.session.commit()
+
+    return answer.content
+
+
+@bio_blueprint.route('/prospecting_with_contacts', methods=['POST', 'GET'])
 def prospecting_with_contacts(company_id='001Dp00000KBTVRIA5'):
     from main import Account, app, Contact
 

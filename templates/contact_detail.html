@@ -27,6 +27,13 @@
                 <p><strong>Languages:</strong> {{ contact.Languages__c or 'N/A' }}</p>
                 <p><strong>Job Rank:</strong> {{ contact.JobRank or 'N/A' }}</p>
             </div>
+
+            <div class="col-md-10 col-sm-12">
+                <hr>
+                <h4>Recommendation</h4>
+                <p><strong>{{ contact.Name }}</strong> {{ rec }}</p>
+            </div>
+
         </div>
     </div>
 
