@@ -195,10 +195,21 @@
                             <h2>No Email to display</h2>
                         </div>
                         <div class="tab-pane fade" id="contact-recommendations" role="tabpanel" aria-labelledby="contact-recommendations-tab">
-                            <!-- Contact recommendations content goes here -->
                             <br><br>
+
+                            {% for contact in contacts %}
+                            {% if contact.Recommendation %}
+
+                            <!-- Display the recommendation -->
+                            <p>{{ contact.Recommendation }}</p>
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if not recommendations_exist %}
                             <h2>No contact recommendations to display</h2>
+                            {% endif %}
                         </div>
+
                     </div>
                     <div id="makeCallView" style="display: none;">
                         <button class="btn btn-secondary backToMain" style="float: left">Back</button>

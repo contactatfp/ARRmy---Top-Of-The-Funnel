@@ -593,12 +593,16 @@ def sdr_dashboard():
             top5_dict[account.Id] = get_top_5_contacts_using_rank_contact(account.Id)
             account_id = account.Id
 
+            contacts = Contact.query.filter_by(AccountId=account_id)
+
             if account_id in open_opps_by_account:
                 color_dict[account_id] = "Green"
             elif account_id in closed_opps_by_account:
                 color_dict[account_id] = "Yellow"
             else:
                 color_dict[account_id] = "Red"
+
+
 
         def get_last_interaction(accountId):
             interaction = Interaction.query.filter_by(account_id=accountId).order_by(
@@ -608,7 +612,7 @@ def sdr_dashboard():
         return render_template('sdr_dashboard.html', accounts=accounts, get_last_interaction=get_last_interaction,
                                account_event_counts=account_event_counts, events=events, top5=top5_dict,
                                status_color=color_dict, closed_opps_by_account=closed_opps_by_account,
-                               open_opps_by_account=open_opps_by_account)
+                               open_opps_by_account=open_opps_by_account, contacts=contacts)
 
     return "Access denied", 403
 
