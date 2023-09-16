@@ -602,8 +602,6 @@ def sdr_dashboard():
             else:
                 color_dict[account_id] = "Red"
 
-
-
         def get_last_interaction(accountId):
             interaction = Interaction.query.filter_by(account_id=accountId).order_by(
                 Interaction.timestamp.desc()).first()
@@ -1223,6 +1221,7 @@ def get_contacts():
 
 
 from threading import Thread
+
 
 @app.route('/contact/<contact_id>')
 def contact_details(contact_id):
