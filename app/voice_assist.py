@@ -1,6 +1,6 @@
 import json
 import openai
-import sounddevice
+# import sounddevice
 from flask import Blueprint, jsonify, request, render_template
 from scipy.io.wavfile import write
 
@@ -10,21 +10,21 @@ from scipy.io.wavfile import write
 voice_blueprint = Blueprint('voice_blueprint', __name__)
 
 
-def voice_import():
-    # sample_rate
-    fs = 44100
-
-    print(sounddevice.query_devices())
-    # Ask to enter the recording time
-    second = int(input("Enter the Recording Time in seconds: "))
-    print("Recording.... In")
-    record_voice = sounddevice.rec(int(second * fs), samplerate=fs, channels=1)
-    sounddevice.wait()
-    write("MyRecording.wav", fs, record_voice)
-
-    print("Recording is done Please check you folder to listen recording")
-
-    return audio_to_text()
+# def voice_import():
+#     # sample_rate
+#     fs = 44100
+#
+#     print(sounddevice.query_devices())
+#     # Ask to enter the recording time
+#     second = int(input("Enter the Recording Time in seconds: "))
+#     print("Recording.... In")
+#     record_voice = sounddevice.rec(int(second * fs), samplerate=fs, channels=1)
+#     sounddevice.wait()
+#     write("MyRecording.wav", fs, record_voice)
+#
+#     print("Recording is done Please check you folder to listen recording")
+#
+#     return audio_to_text()
 
 
 with open('config.json') as f:
