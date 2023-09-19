@@ -11,6 +11,7 @@
     tbody tr:hover {
         cursor: move;
     }
+
     .tooltip {
         pointer-events: none; /* Prevents the tooltip from blocking other elements */
     }
@@ -21,6 +22,7 @@
         max-width: none; /* Remove the max-width restriction */
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for depth */
     }
+
     .note-expander {
         display: none;
         position: absolute;
@@ -66,89 +68,90 @@
     <table class="table table-bordered" style="width:100%" id="myTable">
         <thead>
         <tr>
-            <th>Name</th>
-            <th>Score</th>
-            <th>State</th>
-            <th>Opportunities</th>
-            <th>Notes</th>
-            <th>Last Interaction</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="The name of the account.">Name</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="The score assigned to the account based on certain criteria.">Score</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="The current state or status of the account.">State</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="The number of sales opportunities associated with the account.">Opportunities</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="Any additional notes or information about the account.">Notes</th>
+            <th data-bs-toggle="tooltip" data-bs-placement="top" title="The date of the last interaction with the account.">Last Interaction</th>
             <th>Events</th>
             <th>Top 5 Contacts</th>
             <th>Menu</th>
-<!--            <th>Prospecting</th>-->
+            <!--            <th>Prospecting</th>-->
         </tr>
         </thead>
         <tbody>
         {% for account in accounts %}
-            <tr>
-                <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
-                <td class="tier-cell" data-account-id="{{ account.Id }}">{{ account.Score|int }}</td>
-                <td class="state-cell">{{ account.BillingState }}</td>
-                <td style="background-color: {{ status_color[account.Id] }}; text-align: center;">
+        <tr>
+            <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
+            <td class="tier-cell" data-account-id="{{ account.Id }}">{{ account.Score|int }}</td>
+            <td class="state-cell">{{ account.BillingState }}</td>
+            <td style="background-color: {{ status_color[account.Id] }}; text-align: center;">
 
-                    {% if account.Id in open_opps_by_account %}
-                        {{ open_opps_by_account[account.Id] }} Open
-                    {% elif account.Id in closed_opps_by_account %}
-                        {{ closed_opps_by_account[account.Id] }} Won in Last 12 Months
-                    {% else %}
-                        No opportunities
-                    {% endif %}
-                </td>
-
-
-
-                <td>
-                    <div class="input-group noteGroup">
-                        <textarea class="form-control note-textarea" data-account-id="{{ account.Id }}" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
-                        <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">#}
-                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>#}
-                        </svg>
-                    </div>
-
-
-                </td>
-
-
-                <td data-account-id="{{ account.Id }}" class="last-interaction-cell" style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
-                    {% if last_interaction != None %}
-                        <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
-                    {% else %}
-                        :(
-                    {% endif %}</td>
-                {% if account.BillingCity is not none %}
-                    <td><a href="{{ url_for('event_list', account_id=account.Id, event_city=account.BillingCity) }}" style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a>
-                    </td>
+                {% if account.Id in open_opps_by_account %}
+                {{ open_opps_by_account[account.Id] }} Open
+                {% elif account.Id in closed_opps_by_account %}
+                {{ closed_opps_by_account[account.Id] }} Won in Last 12 Months
                 {% else %}
-                    <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
+                No opportunities
                 {% endif %}
-                <td>
-                    {% for contact in top5[account.Id] %}
-                        <a href="{{ url_for('contact_details', contact_id=contact.Id) }}">{{ contact.Name }} <br> {{ contact.Title }}</a><br><br>
-                    {% endfor %}
-                </td>
+            </td>
 
-                <td>
-                    <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}" data-account-name="{{ account.Name }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
-                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
-                        </svg>
-                    </button>
-                </td>
-<!--                <td>-->
-<!--                    <button type="button" class="btn btn-info"  data-account-id="{{ account.Id }}"><a href="#">-->
-<!--                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">-->
-<!--                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>-->
-<!--                        </svg>-->
-<!--                        </a>-->
-<!--                    </button>-->
-<!--                </td>-->
 
-            </tr>
+
+            <td>
+                <div class="input-group noteGroup">
+                    <textarea class="form-control note-textarea" data-account-id="{{ account.Id }}" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
+                    <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down note-expander" viewBox="0 0 16 16">#}
+                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>#}
+                    </svg>
+                </div>
+
+
+            </td>
+
+
+            <td data-account-id="{{ account.Id }}" class="last-interaction-cell" style="font-weight: lighter; color: steelblue">{% set last_interaction = get_last_interaction(account.Id) %}
+                {% if last_interaction != None %}
+                <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}" style="font-weight: lighter; color: steelblue">{{ last_interaction.timestamp|time_since }}</a>
+                {% else %}
+                :(
+                {% endif %}</td>
+            {% if account.BillingCity is not none %}
+            <td><a href="{{ url_for('event_list', account_id=account.Id, event_city=account.BillingCity) }}" style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</a>
+            </td>
+            {% else %}
+            <td style="font-weight: lighter; color: steelblue">{{ account_event_counts[account.Id] if account.Id in account_event_counts else 0 }}</td>
+            {% endif %}
+            <td>
+                {% for contact in top5[account.Id] %}
+                <a href="{{ url_for('contact_details', contact_id=contact.Id) }}">{{ contact.Name }} <br> {{ contact.Title }}</a><br><br>
+                {% endfor %}
+            </td>
+
+            <td>
+                <button type="button" class="btn btn-info open-contact-modal" data-bs-toggle="modal" data-bs-target="#viewContactModal" data-account-id="{{ account.Id }}" data-account-name="{{ account.Name }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">
+                        <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>
+                    </svg>
+                </button>
+            </td>
+            <!--                <td>-->
+            <!--                    <button type="button" class="btn btn-info"  data-account-id="{{ account.Id }}"><a href="#">-->
+            <!--                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">-->
+            <!--                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>-->
+            <!--                        </svg>-->
+            <!--                        </a>-->
+            <!--                    </button>-->
+            <!--                </td>-->
+
+        </tr>
 
         {% endfor %}
         </tbody>
     </table>
+</div>
 
 
 
@@ -217,11 +220,11 @@
                         <select id="contactDropdown">
                             <option value="">Select Contact</option>
                             <!-- Add options for each contact -->
-<!--                             <option value="phoneNumber">Contact Name</option>-->
+                            <!--                             <option value="phoneNumber">Contact Name</option>-->
                         </select>
                         <button id="addContactBtn" style="display: none;">Add Contact</button>
                         <input type="text" id="phoneNumberInput" placeholder="Enter phone number" style="display: none;">
-                        <a href="#" id="callBtn" class="btn btn-primary">Call</a>
+                        <a href="{{ url_for('voice_blueprint.voice_assist') }}" id="callBtn" class="btn btn-primary">Call</a>
                     </div>
                     <!-- Video Meeting Sub-view -->
                     <div id="videoMeetingView" style="display: none;">
@@ -273,42 +276,42 @@
 
 
 
-        <!-- Modal -->
-        <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addAccountModalLabel">Add New Account</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="add-account-form">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="street" class="form-label">Street</label>
-                                <input type="text" class="form-control" id="street" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="city" class="form-label">City</label>
-                                <input type="text" class="form-control" id="city" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="state" class="form-label">State</label>
-                                <input type="text" class="form-control" id="state" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="zip" class="form-label">ZIP</label>
-                                <input type="text" class="form-control" id="zip" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </form>
-                    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAccountModalLabel">Add New Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-account-form">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="street" class="form-label">Street</label>
+                            <input type="text" class="form-control" id="street" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="zip" class="form-label">ZIP</label>
+                            <input type="text" class="form-control" id="zip" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
 
     <!-- Modal for Editing Notes -->
     <div class="modal fade" id="editNotesModal" tabindex="-1" aria-labelledby="editNotesModalLabel" aria-hidden="true">
@@ -378,6 +381,9 @@
 
                 }
             });
+
+            // Tooltip initialization for table headers
+            $('[data-bs-toggle="tooltip"]').tooltip();
 
             // Sorting functionality
             $("table tbody").sortable({
@@ -514,6 +520,11 @@
             }
         });
 
+        $('#viewContactModal').on('hidden.bs.modal', function() {
+            resetContactsDropdown();
+        });
+
+
         // Ensure the main view always starts when the modal is opened or clicked away
         $('#viewContactModal').on('hide.bs.modal', function() {
             resetModalView();
@@ -529,7 +540,26 @@
             // Update the modal's content
             var modal = $(this);
             modal.find('#modalAccountName').text(accountName);
+
+            // Get the accountId from the button's data attribute
+            let accountId = $(event.relatedTarget).data('account-id');
+
+            fetchContactsForAccount(accountId);
         });
+
+        function resetContactsDropdown() {
+            $('#contactDropdown, #videoContactDropdown, #emailContactDropdown').empty();
+            $('#contactDropdown, #videoContactDropdown, #emailContactDropdown').append('<option value="">Select Contact</option>');
+        }
+
+
+
+        function fetchContactsForAccount(accountId) {
+            $.get('/get_contacts_for_account/' + accountId, function(data) {
+                // Assuming the returned data is the rendered HTML for the contacts
+                $('#contactDropdown, #videoContactDropdown, #emailContactDropdown').html(data);
+            });
+        }
 
         function fetchInteractions(accountId) {
             $.get('/get_interactions', { account_id: accountId }, function(interactions) {
@@ -539,6 +569,7 @@
         }
 
     </script>
+
 
 
 </div>

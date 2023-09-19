@@ -29,9 +29,12 @@ from app.prospecting import bio_blueprint
 from app.rank_algo import rank_companies
 from flask_caching import Cache
 import faker
+from app.voice_assist import voice_blueprint
+
 
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
+app.register_blueprint(voice_blueprint)
 
 cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(app)
@@ -983,6 +986,12 @@ def soql_query(query):
     # Make sure the query is properly formatted without the '+' characters
     soql_query = query.replace('+', ' ')
     return soql_query
+
+
+@app.route('/get_contacts_for_account/<account_id>', methods=['GET'])
+def get_contacts_for_account(account_id):
+    contacts = Contact.query.filter_by(AccountId=account_id).all()
+    return render_template('contacts_partial.html', contacts=contacts)
 
 
 @app.route('/company_contacts/<account_id>', methods=['GET'])

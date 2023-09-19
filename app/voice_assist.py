@@ -1,14 +1,20 @@
-import sounddevice, json
+import json
 import openai
+import sounddevice
+from flask import Blueprint, jsonify, request, render_template
 from scipy.io.wavfile import write
-
 
 # documents to make phone call with python using twilio
 # https://www.twilio.com/docs/voice/quickstart/python#make-an-outgoing-phone-call-with-python
 
+voice_blueprint = Blueprint('voice_blueprint', __name__)
+
+
 def voice_import():
     # sample_rate
     fs = 44100
+
+    print(sounddevice.query_devices())
     # Ask to enter the recording time
     second = int(input("Enter the Recording Time in seconds: "))
     print("Recording.... In")
@@ -21,16 +27,15 @@ def voice_import():
     return audio_to_text()
 
 
-with open('../config.json') as f:
+with open('config.json') as f:
     config = json.load(f)
 
 
 def audio_to_text():
     openai.api_key = config['openai_api-key']
-    audio_file = open("MyRecording.wav", "rb")
+    audio_file = open("my_received_audio.webm", "rb")
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
-    print()
     print(transcript['text'])
 
     return transcript['text']
@@ -85,8 +90,24 @@ def text_to_advice(text):
 
     print()
     print(response.content)
+    return response.content
 
 
-text = voice_import()
+@voice_blueprint.route('/voice_assist', methods=['GET', 'POST'])
+def voice_assist():
+    if request.method == 'GET':
+        return render_template('voice_assist_chat.html')
+    else:
+        audio_file = request.files.get('audio')
+        if not audio_file:
+            return jsonify({'error': 'No audio file provided'}), 400
 
-text_to_advice(text)
+        # Save the audio file for processing
+        audio_file.save("my_received_audio.webm")
+
+        # Process the audio (transcribe, get advice, etc.)
+        transcribed_text = audio_to_text()
+
+        advice = text_to_advice(transcribed_text)
+
+        return jsonify({'advice': advice})
