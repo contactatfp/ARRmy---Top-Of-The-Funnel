@@ -369,6 +369,14 @@
                         }
                     });
 
+                    $('td[data-bs-toggle="tooltip"]').tooltip({
+                        trigger: 'manual',
+                        html: true,
+                        title: function() {
+                            return $(this).attr('title');
+                        }
+                    });
+
 
                     // Fetch tooltip content for the rows in the current page
                     $('.last-interaction-cell').each(function() {
@@ -380,6 +388,7 @@
                             });
                         }
                     });
+
 
                     $('.tier-cell').each(function() {
                         let $thisCell = $(this);
@@ -459,6 +468,14 @@
                 let accountId = $(this).data('account-id');
                 $('#modalNoteTextarea').val(currentNote).data('account-id', accountId);
                 $('#editNotesModal').modal('show');
+            });
+
+            // Tooltip handling for the notes cells
+            $('body').on('mouseenter', 'td[data-bs-toggle="tooltip"]', function() {
+                let $thisCell = $(this);
+                $thisCell.tooltip('show');
+            }).on('mouseleave', 'td[data-bs-toggle="tooltip"]', function() {
+                $(this).tooltip('hide');
             });
 
             $('#saveModalNote').click(function() {
