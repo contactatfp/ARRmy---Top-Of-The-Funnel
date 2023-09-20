@@ -52,6 +52,21 @@
         font-weight: bold;
     }
 
+    #myTable {
+        min-width: 2000px;
+    }
+
+    #myTable_filter {
+        width: 90%;
+
+    }
+
+    #myTable_paginate {
+        width: 95%;
+
+    }
+
+
 </style>
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -65,8 +80,12 @@
 
     <!-- Add your dashboard content here -->
     <h2>Accounts</h2>
-    <table class="table table-bordered" style="width:100%" id="myTable">
-        <thead>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped table-hover" id="myTable">
+
+
+<thead>
         <tr>
             <th data-bs-toggle="tooltip" data-bs-placement="top" title="The name of the account.">Name</th>
             <th data-bs-toggle="tooltip" data-bs-placement="top" title="The score assigned to the account based on certain criteria.">Score</th>
@@ -98,8 +117,7 @@
             </td>
 
 
-
-            <td>
+            <td data-bs-toggle="tooltip" data-bs-placement="right" title="{{ account.Notes }}">
                 <div class="input-group noteGroup">
                     <textarea class="form-control note-textarea" data-account-id="{{ account.Id }}" readonly aria-label="Recipient's username">{{ account.Notes }}</textarea>
                     <button class="btn btn-outline-secondary save-note-btn" type="button" style="display:none;">Save</button>
@@ -137,21 +155,12 @@
                     </svg>
                 </button>
             </td>
-            <!--                <td>-->
-            <!--                    <button type="button" class="btn btn-info"  data-account-id="{{ account.Id }}"><a href="#">-->
-            <!--                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="2 0 11 19">-->
-            <!--                            <path d="M9.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-7a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0zm0 14a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"></path>-->
-            <!--                        </svg>-->
-            <!--                        </a>-->
-            <!--                    </button>-->
-            <!--                </td>-->
-
         </tr>
 
         {% endfor %}
         </tbody>
     </table>
-</div>
+    </div>
 
 
 
@@ -347,6 +356,7 @@
             var table = $('#myTable').DataTable({
                 "order": [[ 0, "asc" ]],
                 "pageLength": 10,
+                "scrollX": true,
                 "drawCallback": function(settings) {
                     // Reinitialize tooltips for the rows in the current page
                     $('.last-interaction-cell, .tier-cell, .state-cell').tooltip({
@@ -356,6 +366,7 @@
                             return $(this).attr('data-tooltip-content');
                         }
                     });
+
 
                     // Fetch tooltip content for the rows in the current page
                     $('.last-interaction-cell').each(function() {
@@ -572,5 +583,5 @@
 
 
 
-</div>
+<!--</div>-->
 {% endblock %}
