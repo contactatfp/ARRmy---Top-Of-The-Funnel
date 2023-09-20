@@ -1,0 +1,5 @@
+<option value="">Select Contact</option>
+{% for contact in contacts %}
+<!-- Display the contact details here -->
+<option value="{{ contact.Phone }}">{{ contact.Name }}</option>
+{% endfor %}
