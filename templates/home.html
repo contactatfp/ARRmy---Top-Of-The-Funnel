@@ -1,0 +1,430 @@
+<!--<!DOCTYPE html>&lt;!&ndash;  This site was created in Webflow. https://www.webflow.com  &ndash;&gt;-->
+<!--&lt;!&ndash;  Last Published: Sat Sep 23 2023 21:36:44 GMT+0000 (Coordinated Universal Time)  &ndash;&gt;-->
+
+<!--<head>-->
+<!--  <meta charset="utf-8">-->
+<!--  <title>code-output</title>-->
+<!--  <meta content="width=device-width, initial-scale=1" name="viewport">-->
+<!--  <link href="../static/css/normalize.css" rel="stylesheet" type="text/css">-->
+<!--  <link href="../static/css/webflow.css" rel="stylesheet" type="text/css">-->
+<!--  <link href="../static/css/code-output.webflow.css" rel="stylesheet" type="text/css">-->
+<!--  <script type="text/javascript">!function(o,c){var n=c.documentElement,t=" w-mod-";n.className+=t+"js",("ontouchstart"in o||o.DocumentTouch&&c instanceof DocumentTouch)&&(n.className+=t+"touch")}(window,document);</script>-->
+<!--  <link href="../static/img/favicon.ico" rel="shortcut icon" type="image/x-icon">-->
+<!--  <link href="../static/img/webclip.png" rel="apple-touch-icon">-->
+<!--</head>-->
+<!--<body>-->
+<!--  <div class="page-wrapper">-->
+<!--    <div class="global-styles w-embed">-->
+<!--      <style>-->
+<!--/* Snippet gets rid of top margin on first element in any rich text*/-->
+<!--.w-richtext>:first-child {-->
+<!--	margin-top: 0;-->
+<!--}-->
+<!--/* Snippet gets rid of bottom margin on last element in any rich text*/-->
+<!--.w-richtext>:last-child, .w-richtext ol li:last-child, .w-richtext ul li:last-child {-->
+<!--	margin-bottom: 0;-->
+<!--}-->
+<!--/* Snippet prevents all click and hover interaction with an element */-->
+<!--.clickable-off {-->
+<!--	pointer-events: none;-->
+<!--}-->
+<!--/* Snippet enables all click and hover interaction with an element */-->
+<!--.clickable-on{-->
+<!--  pointer-events: auto;-->
+<!--}-->
+<!--/* Snippet enables you to add class of div-square which creates and maintains a 1:1 dimension of a div.*/-->
+<!--.div-square::after {-->
+<!--	content: "";-->
+<!--	display: block;-->
+<!--	padding-bottom: 100%;-->
+<!--}-->
+<!--/*Hide focus outline for main content element*/-->
+<!--main:focus-visible {-->
+<!--	outline: -webkit-focus-ring-color auto 0px;-->
+<!--}-->
+<!--/* Make sure containers never lose their center alignment*/-->
+<!--.container-medium, .container-small, .container-large {-->
+<!--	margin-right: auto !important;-->
+<!--	margin-left: auto !important;-->
+<!--}-->
+<!--/*Reset buttons, and links styles*/-->
+<!--a {-->
+<!--	color: inherit;-->
+<!--	text-decoration: inherit;-->
+<!--	font-size: inherit;-->
+<!--}-->
+<!--/*Apply "..." after 3 lines of text */-->
+<!--.text-style-3lines {-->
+<!--	display: -webkit-box;-->
+<!--	overflow: hidden;-->
+<!--	-webkit-line-clamp: 3;-->
+<!--	-webkit-box-orient: vertical;-->
+<!--}-->
+<!--/*Apply "..." after 2 lines of text */-->
+<!--.text-style-2lines {-->
+<!--	display: -webkit-box;-->
+<!--	overflow: hidden;-->
+<!--	-webkit-line-clamp: 2;-->
+<!--	-webkit-box-orient: vertical;-->
+<!--}-->
+<!--</style>-->
+<!--    </div>-->
+<!--    <div>-->
+<!--      <div data-animation="default" data-collapse="none" data-duration="400" data-easing="ease" data-easing2="ease" role="banner" class="nav w-nav">-->
+<!--        <div class="nav-container">-->
+<!--          <a href="#" class="nav-logo-link w-inline-block"><img src="../static/img/Screenshot-2023-09-23-at-2.34.00-PM.png" loading="lazy" width="60" height="Auto" alt="" srcset="../static/img/Screenshot-2023-09-23-at-2.34.00-PM.png 500w, ../static/img/Screenshot-2023-09-23-at-2.34.00-PM.png 766w" sizes="60.000003814697266px"></a>-->
+<!--          <nav role="navigation" class="nav-menu w-nav-menu">-->
+<!--            <a href="#" class="icon-button nav-button w-inline-block">-->
+<!--              <div class="flex-row-center">-->
+<!--                <div>Pricing</div>-->
+<!--              </div>-->
+<!--            </a>-->
+<!--            <div class="nav-line"></div>-->
+<!--            <a href="#" data-ms-content="!members" class="icon-button nav-button w-inline-block">-->
+<!--              <div class="flex-row-center">-->
+<!--                <div>Log in</div>-->
+<!--              </div>-->
+<!--            </a>-->
+<!--            <div class="nav-line"></div>-->
+<!--            <a href="#" data-ms-content="!members" class="icon-button nav-button w-inline-block">-->
+<!--              <div class="flex-row-center">-->
+<!--                <div>Sign up</div>-->
+<!--              </div>-->
+<!--            </a>-->
+<!--            <a href="#" data-ms-action="login-redirect" class="icon-button nav-button w-inline-block">-->
+<!--              <div class="flex-row-center">-->
+<!--                <div>Dashboard</div>-->
+<!--              </div>-->
+<!--            </a>-->
+<!--          </nav>-->
+<!--          <div class="menu-button w-nav-button">-->
+<!--            <div class="w-icon-nav-menu"></div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+{% extends "base.html" %}
+{% block content %}
+    <html data-wf-page="650f57c238e964525a27dd42" data-wf-site="650f57c238e964525a27dd3f">
+    <main class="main-wrapper">
+      <div class="home-header">
+        <div class="container">
+          <div class="home-header-content">
+            <div class="home-header-content-text">
+              <div class="relative">
+                <h1 class="h1"><span class="text-mark">A</span> compelling <span class="hide-on-mobile">value</span> <span class="linebreak">proposition goes here.</span></h1>
+                <div class="svg-arrow w-embed"><svg width="500" height="auto" viewbox="0 0 246 287" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M156.25 265.656C157.94 265.444 158.573 265.656 159.207 265.444C197.847 242.174 224.029 209.172 233.953 164.747C236.487 153.535 236.065 141.899 233.109 130.476C226.985 105.936 206.504 89.0121 181.377 87.5312C168.286 86.685 155.617 88.1659 144.215 95.3586C143.37 101.493 142.737 107.628 141.47 113.34C139.359 122.648 134.502 130.264 125.845 134.918C119.51 138.515 113.176 138.515 109.798 135.13C105.363 130.687 105.364 124.764 108.108 119.898C111.909 113.129 116.554 106.782 121.411 100.859C124.578 97.051 128.801 93.8777 132.602 90.7045C129.012 66.7994 106.419 56.645 79.3921 66.5878C78.5475 69.9726 77.7029 73.569 76.6472 76.9538C72.4242 89.4352 64.6117 98.9549 51.9427 103.397C47.0863 105.09 41.8075 105.724 37.5845 101.282C34.4173 97.8972 34.4173 91.9738 37.7957 86.0504C43.2856 76.7422 51.5204 70.1842 60.3887 64.4723C63.5559 62.5684 66.7232 60.6644 69.8904 58.972C65.6674 21.9508 32.517 -4.28131 0 10.5272C0.211149 7.77702 -1.29001e-05 5.44997 0.844584 4.18067C1.90033 2.69982 4.22297 1.85363 6.12332 1.43053C24.071 -1.95427 40.7518 0.161227 54.4765 13.2773C64.8228 23.0086 71.7908 34.8554 76.4361 48.3946C77.0695 50.2985 77.703 52.2024 78.5476 54.1064C78.5476 54.3179 78.9698 54.5295 79.8144 55.1641C81.7147 54.9526 84.0374 54.9526 86.36 54.5295C114.654 50.087 129.434 57.7027 142.526 84.1464C145.06 83.3002 148.016 82.454 150.761 81.3963C167.019 75.896 183.278 75.4729 199.747 80.9732C226.563 89.8583 243.877 112.917 245.778 142.111C246.833 157.977 244.089 173.209 238.388 188.017C224.452 223.769 201.648 251.905 167.441 270.31C165.752 271.368 163.852 272.214 162.163 273.272C161.951 273.483 161.74 273.906 161.107 275.176C168.286 276.868 175.043 276.233 181.8 275.81C188.345 275.599 195.102 274.964 202.281 274.541C201.648 280.041 198.691 282.157 195.102 283.426C190.879 284.695 186.656 286.388 182.433 286.599C171.031 287.023 159.418 287.234 147.804 286.599C138.725 285.965 136.191 281.099 140.203 273.695C148.86 258.04 157.728 242.386 166.597 226.731C168.075 224.192 169.975 222.077 172.298 219.115C176.31 223.769 174.62 227.154 173.142 230.327C167.23 241.751 161.951 253.175 156.25 265.656ZM43.919 94.9355C58.4883 93.0315 67.5677 83.7233 68.2012 70.6073C58.4883 76.9538 49.1978 82.6656 43.919 94.9355ZM115.288 127.726C127.745 124.764 133.658 116.302 132.391 103.397C124.367 110.167 117.399 116.514 115.288 127.726Z" fill="currentColor"></path>
+                  </svg></div>
+              </div>
+              <div class="margin-bottom margin-large">
+                <div class="container-small">
+                  <p class="standard-paragraph">This is a subheading about 1 sentence in length. Use it to explain how your product solves a meaningful problem.</p>
+                </div>
+              </div>
+              <div class="button-wrapper">
+                <a href="#" class="icon-button w-inline-block">
+                  <div class="flex-row-center">
+                    <div>Get Started</div>
+                    <div class="button-arrow w-embed"><svg class="rubicon-display" width="24" height="24" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12H21M21 12L16.5 6M21 12L16.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                      </svg></div>
+                  </div>
+                </a>
+                <div class="button-trigger">No Credit Card Required</div>
+              </div>
+              <div class="w-embed">
+                <style>
+.circle-highlight::before{
+content:'';
+overflow:visible;
+position:absolute;
+display:inline;
+z-index:-1;
+width:14rem;
+height:7rem;
+top:-30%;
+bottom:0%;
+left:-10%;
+right:0%;
+background: url(https://uploads-ssl.webflow.com/615766391d1a31b6cd43c618/61597a33dbb47a2c9a3a00f5_Encircle.svg) center no-repeat;
+}
+@media only screen and (max-width: 767px) {
+.circle-highlight::before{
+content:'';
+overflow:visible;
+position:absolute;
+display:inline;
+z-index:-1;
+width:auto;
+height:auto;
+top:-10%;
+bottom:0%;
+left:0%;
+right:0%;
+background: url(https://uploads-ssl.webflow.com/615766391d1a31b6cd43c618/61597a33dbb47a2c9a3a00f5_Encircle.svg) center no-repeat;
+background-size:85%
+}
+}
+</style>
+              </div>
+            </div>
+            <div class="header-graphic"><img src="../static/img/Dashboard.png" loading="lazy" sizes="(max-width: 479px) 90vw, (max-width: 767px) 94vw, (max-width: 1279px) 92vw, 1040px" srcset="../static/img/Dashboard-p-500.png 500w, ../static/img/Dashboard-p-800.png 800w, ../static/img/Dashboard-p-1080.png 1080w, ../static/img/Dashboard.png 1137w" alt="product dashboard
+"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-business-logos">
+        <div class="container">
+          <div class="padding-vertical">
+            <div class="business-logo-section">
+              <div class="margin-bottom margin-xlarge">
+                <h3 class="h-small text-align-center">Trusted by high growth companies</h3>
+              </div>
+              <div class="business-logos_wrapper">
+                <div class="business-logos"><img src="../static/img/Webflow-Logo.svg" loading="lazy" alt="webflow logo"></div>
+                <div class="business-logos"><img src="../static/img/zerodha-logo.svg" loading="lazy" alt="zerodha logo
+"></div>
+                <div class="business-logos"><img src="../static/img/Zapier-Logo.svg" loading="lazy" alt="zapier logo
+"></div>
+                <div class="business-logos"><img src="../static/img/Intuit-Logo.svg" loading="lazy" alt="intuit logo"></div>
+                <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6c6c-5a27dd42" class="business-logos"><img src="../static/img/mailchimp-logo.svg" loading="lazy" alt="mailchimp logo"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-home-benefits">
+        <div class="container">
+          <div class="padding-vertical">
+            <div class="home-benefits-section">
+              <div class="home-benefits-wrapper">
+                <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6c73-5a27dd42" class="home-benefits-content">
+                  <div class="margin-bottom">
+                    <h2 class="h2">An epic,<br>major benefit</h2>
+                  </div>
+                  <p class="standard-paragraph"><span>Supporting ideas. </span>Provide some evidence or extra commentary to explain the benefit.<br>Get your sales hat on! Some people are going to read this, and use it to make a decision.</p>
+                </div>
+                <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6c7f-5a27dd42" class="home-benefits_product-images"><img src="../static/img/decorative-triangle.svg" loading="lazy" width="45" alt="" class="decoration-benefits_triangle"><img src="../static/img/Trust-dashboard.svg" loading="lazy" alt="" class="decoration-benefits_trust">
+                  <div class="svg-arrow top-left w-embed"><svg width="500" height="auto" viewbox="0 0 274 246" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <g clip-path="url(#clip0_3_252)">
+                        <path d="M247.029 126.774C239.87 122.246 234.026 118.963 228.47 115.304C225.269 113.092 221.692 110.591 225.349 104.578C237.422 110.486 249.602 115.166 260.426 122.858C265.039 126.033 265.292 129.442 262.591 134.52C261.626 136.402 260.284 137.995 259.133 139.495C252.518 147.651 245.904 155.807 239.006 163.866C236.801 166.584 234.122 169.297 230.452 166.607C227.158 164.204 227.477 160.518 229.212 157.321C231.236 153.748 233.729 150.654 236.128 147.37C237.855 145.119 239.772 142.776 240.56 139.568C239.418 140.123 238.276 140.677 237.133 141.232C224.378 147.426 218.321 146.6 207.608 137.206C199.151 129.541 192.506 120.761 188.438 110.024C187.42 107.458 186.401 104.892 185.476 102.516C180.93 92.2461 175.258 90.7624 166.85 98.1411C162.551 101.877 159 106.662 155.171 110.875C143.867 123.898 133.906 125.204 119.597 115.201C108.865 107.7 100.046 98.3274 93.5205 86.8997C91.5637 83.3769 89.5139 79.6637 87.079 76.6084C82.9572 71.5471 79.3578 71.4115 75.5191 76.5715C71.2997 81.9164 68.1163 87.9354 64.6495 93.8565C62.1479 97.8963 60.306 102.322 57.5211 106.264C51.7609 114.241 43.8535 118.787 33.7326 116.874C26.1663 115.369 18.5115 113.2 11.1444 110.657C6.3275 108.993 2.47584 105.449 2.44949 98.1634C4.90665 98.8537 6.89008 99.5385 9.06389 100.131C16.8117 102.49 24.5595 104.849 32.5021 106.642C40.1614 108.337 45.6913 104.71 49.3529 98.2239C52.4389 92.4877 54.9582 86.5558 58.1372 81.0098C61.1214 76.0294 64.0126 70.8586 67.9353 66.8349C76.2635 57.8469 87.5355 58.2589 95.3096 67.9031C98.8691 72.2958 101.853 77.4388 104.554 82.4839C110.145 92.4817 118.03 100.424 127.256 106.774C134.977 111.97 138.679 111.35 144.806 104.608C149.88 99.0835 154.485 93.0806 160.214 88.4152C163.845 85.2397 168.98 83.2167 173.917 82.2321C182.462 80.4371 189.249 84.2041 193.251 91.9132C195.296 96.0994 197.244 100.568 198.528 105.124C201.746 115.568 208.684 123.5 216.387 130.589C220.146 133.943 224.113 135.313 229.253 132.817C234.393 130.32 239.901 129.059 247.029 126.774Z" fill="currentColor"></path>
+                      </g>
+                    </svg></div><img src="../static/img/dashboard-shadow.svg" loading="lazy" alt="" class="decoration-benefits_shadow"><img src="../static/img/Customers-tab.svg" loading="lazy" width="151" alt="" class="decoration-benefits_cudtomers">
+                </div>
+              </div>
+              <div class="home-benefits-wrapper margin-top">
+                <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6c86-5a27dd42" class="home-benefits_product-images"><img src="../static/img/three-lines.svg" loading="lazy" width="48" alt="" class="decoration-benefits_lines-on-right"><img src="../static/img/decorative-moneybag.svg" loading="lazy" width="52" alt="" class="decoration-benefits_moneybag"><img src="../static/img/decorative-spring.svg" loading="lazy" width="37.5" alt="" class="decoration-benefits_squiggle"><img src="../static/img/decorative-crowd.svg" loading="lazy" width="78" alt="" class="decoration-benefits_crowd"><img src="../static/img/dashboard-shadow.svg" loading="lazy" alt="" class="decoration-benefits_shadow"><img src="../static/img/Churn-tab.svg" loading="lazy" width="210" alt="" class="decoration-benefits_churn"><img src="../static/img/blue-background-dashboard.svg" loading="lazy" alt="" class="decoration-benefits-blue-box"><img src="../static/img/Sales-tab.svg" loading="lazy" width="240" alt="" class="decoration-benefits_sales"></div>
+                <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6c8f-5a27dd42" class="home-benefits-content">
+                  <div class="margin-bottom margin-small">
+                    <h2 class="h2">Benefit number two</h2>
+                  </div>
+                  <p class="standard-paragraph">Provide some evidence or extra commentary to explain the benefit. Get your sales hat on! Some people are going to read this, and use it to make a decision.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-home-testimonial">
+        <div class="container">
+          <div class="padding-vertical">
+            <div class="slider-wrapper"><img src="../static/img/Group-5.svg" loading="lazy" alt="" class="testimonial-decor-2">
+              <div data-delay="4000" data-animation="cross" class="slider-horizontal w-slider" data-autoplay="true" data-easing="ease" data-hide-arrows="false" data-disable-swipe="false" data-autoplay-limit="0" data-nav-spacing="3" data-duration="500" data-infinite="true">
+                <div class="slider-mask w-slider-mask">
+                  <div class="slider-slide w-slide">
+                    <div class="testimonial-card">
+                      <div class="testimonial-image-wrap"><img src="https://uploads-ssl.webflow.com/612eb5edd38dcc60eef8c11a/612eb5edd38dccc6fcf8c13e_angle.svg" alt="" class="horizontal-angle"><img src="../static/img/slide-img-02.jpg" alt="Testimonial Image" sizes="(max-width: 767px) 90vw, (max-width: 1279px) 37vw, 415.998291015625px" srcset="../static/img/slide-img-02-p-500.jpeg 500w, ../static/img/slide-img-02-p-1080.jpeg 1080w, ../static/img/slide-img-02-p-1600.jpeg 1600w, ../static/img/slide-img-02.jpg 1650w" class="testimonial-image"></div>
+                      <div class="testimonial-content">
+                        <div class="height-100px"><img src="../static/img/4.svg" alt="" class="testimonial-logo">
+                          <h4 class="quote-content">There are many different ways a business can display customer testimonials — And when determining the best approach...</h4>
+                        </div>
+                        <div class="author-block"><img src="../static/img/avatar.png" alt="" class="author-image">
+                          <div>
+                            <h4 class="author-name">Sam Kennedy</h4>
+                            <div class="author-job">Marketing Lead, Twitter</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="slider-slide w-slide">
+                    <div class="testimonial-card">
+                      <div class="testimonial-image-wrap"><img src="https://uploads-ssl.webflow.com/612eb5edd38dcc60eef8c11a/612eb5edd38dccc6fcf8c13e_angle.svg" alt="" class="horizontal-angle"><img src="../static/img/slide-img.jpg" alt="Testimonial Image" sizes="(max-width: 767px) 90vw, (max-width: 1279px) 37vw, 415.998291015625px" srcset="../static/img/slide-img-p-1080.jpeg 1080w, ../static/img/slide-img-p-1600.jpeg 1600w, ../static/img/slide-img.jpg 1651w" class="testimonial-image">
+                        <a href="#" class="play-button w-inline-block w-lightbox">
+                          <script type="application/json" class="w-json">{
+  "items": [
+    {
+      "url": "https://vimeo.com/130820761",
+      "originalUrl": "https://vimeo.com/130820761",
+      "width": 940,
+      "height": 529,
+      "thumbnailUrl": "https://i.vimeocdn.com/video/522826368_1280.jpg",
+      "html": "<iframe class=\"embedly-embed\" src=\"//cdn.embedly.com/widgets/media.html?src=https%3A%2F%2Fplayer.vimeo.com%2Fvideo%2F130820761%3Fapp_id%3D122963&dntp=1&url=https%3A%2F%2Fvimeo.com%2F130820761&image=https%3A%2F%2Fi.vimeocdn.com%2Fvideo%2F522826368_1280.jpg&key=96f1f04c5f4143bcb0f2e68c87d65feb&type=text%2Fhtml&schema=vimeo\" width=\"940\" height=\"529\" scrolling=\"no\" frameborder=\"0\" allow=\"autoplay; fullscreen\" allowfullscreen=\"true\"></iframe>",
+      "type": "video"
+    }
+  ],
+  "group": ""
+}</script>
+                        </a>
+                      </div>
+                      <div class="testimonial-content">
+                        <div class="height-100px"><img src="https://uploads-ssl.webflow.com/612eb5edd38dcc60eef8c11a/612eb5edd38dccf74bf8c139_2.svg" alt="" class="testimonial-logo">
+                          <h4 class="quote-content">To show the value of what you have to offer, why not let your happy customers do the talking? It&#x27;s a simple but powerful tool for establishing trust...</h4>
+                        </div>
+                        <div class="author-block"><img src="../static/img/avatar-03.png" alt="" class="author-image">
+                          <div>
+                            <h4 class="author-name">Thomas Lee</h4>
+                            <div class="author-job">Marketing Lead, Oculus</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="left-arrow w-slider-arrow-left">
+                  <div class="w-icon-slider-left"></div>
+                </div>
+                <div class="right-arrow w-slider-arrow-right">
+                  <div class="w-icon-slider-right"></div>
+                </div>
+                <div class="slide-nav-2 w-slider-nav w-slider-nav-invert w-round"></div>
+              </div><img src="../static/img/dashboard-shadow.svg" loading="lazy" alt="" class="decoration-benefits_shadow">
+              <div class="testimonial-shadow"></div><img src="../static/img/Group-6.svg" loading="lazy" alt="" class="testimonial-decor">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-home-process">
+        <div class="container">
+          <div class="padding-vertical">
+            <div class="margin-bottom margin-xlarge">
+              <h2 class="h2 text-align-center">Here’s how the product works</h2>
+            </div>
+            <div class="home-process-content_wrapper">
+              <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6cce-5a27dd42" class="home-process-block">
+                <div class="margin-bottom"><img src="../static/img/Step-1.svg" loading="lazy" alt="" class="process-image"></div>
+                <h3 class="h-small">Follow this step</h3>
+                <p class="standard-paragraph smaller">What your customer can expect to happen. Transparency builds trust.</p>
+              </div>
+              <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6cd5-5a27dd42" class="home-process-block">
+                <div class="margin-bottom"><img src="../static/img/step---2.svg" loading="lazy" alt="" class="process-image"></div>
+                <h3 class="h-small">Then this step</h3>
+                <p class="standard-paragraph smaller">What your customer can expect to happen. Transparency builds trust.</p>
+              </div>
+              <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6cdc-5a27dd42" class="home-process-block">
+                <div class="margin-bottom"><img src="../static/img/step---3.svg" loading="lazy" alt="" class="process-image"></div>
+                <h3 class="h-small">Then this one</h3>
+                <p class="standard-paragraph smaller">What your customer can expect to happen. Transparency builds trust.</p>
+              </div>
+              <div id="w-node-_0adca426-a239-fcc6-74bf-f7d0499c6ce3-5a27dd42" class="home-process-block">
+                <div class="margin-bottom"><img src="../static/img/step---4.svg" loading="lazy" alt="" class="process-image"></div>
+                <h3 class="h-small">Voila! It’s done</h3>
+                <p class="standard-paragraph smaller">What your customer can expect to happen. Transparency builds trust.</p>
+              </div>
+            </div>
+            <div class="button-wrapper">
+              <a href="#" class="icon-button w-inline-block">
+                <div class="flex-row-center">
+                  <div>Get Started</div>
+                  <div class="button-arrow w-embed"><svg class="rubicon-display" width="24" height="24" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 12H21M21 12L16.5 6M21 12L16.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg></div>
+                </div>
+              </a>
+              <div class="button-trigger">No Credit Card Required</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-home-features">
+        <div class="padding-vertical">
+          <div class="flex-container">
+            <div class="flex-row-outer">
+              <div class="product-heading">
+                <div class="features-content_icon"><img src="../static/img/icon---4.svg" loading="lazy" alt="icon name" class="feature-icon_image"></div>
+                <h2 class="h2">An epic product or feature here</h2>
+                <p class="standard-paragraph">One day, after a troubling visit from the giant Catherine Clifford, Chloe leaves her house and sets out in search of three cosy sausages.</p>
+                <a href="#" class="icon-button w-inline-block">
+                  <div class="flex-row-center">
+                    <div>Get Started</div>
+                    <div class="button-arrow w-embed"><svg class="rubicon-display" width="24" height="24" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12H21M21 12L16.5 6M21 12L16.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                      </svg></div>
+                  </div>
+                </a>
+                <div class="button-trigger">No Credit Card Required</div>
+              </div>
+              <div class="w-layout-grid grid-faq">
+                <div class="questions-block">
+                  <div class="flex-row-left">
+                    <div class="features-content_icon small"><img src="../static/img/icon---2.svg" loading="lazy" alt="icon name" class="feature-icon_image"></div>
+                    <h3 class="h-small">An important feature</h3>
+                  </div>
+                  <p class="standard-paragraph smaller">One day, after a troubling visit from the giant Catherine Clifford, Chloe leaves her house and sets out in search of three cosy sausages.</p>
+                </div>
+                <div class="questions-block">
+                  <div class="flex-row-left">
+                    <div class="features-content_icon small"><img src="../static/img/icon---6.svg" loading="lazy" alt="icon name" class="feature-icon_image"></div>
+                    <h3 class="h-small">An important feature</h3>
+                  </div>
+                  <p class="standard-paragraph smaller">One day, after a troubling visit from the giant Catherine Clifford, Chloe leaves her house and sets out in search of three cosy sausages.</p>
+                </div>
+                <div class="questions-block">
+                  <div class="flex-row-left">
+                    <div class="features-content_icon small"><img src="../static/img/icon---5.svg" loading="lazy" alt="icon name" class="feature-icon_image"></div>
+                    <h3 class="h-small">An important feature</h3>
+                  </div>
+                  <p class="standard-paragraph smaller">One day, after a troubling visit from the giant Catherine Clifford, Chloe leaves her house and sets out in search of three cosy sausages.</p>
+                </div>
+                <div class="questions-block">
+                  <div class="flex-row-left">
+                    <div class="features-content_icon small"><img src="../static/img/icon---1.svg" loading="lazy" alt="icon name" class="feature-icon_image"></div>
+                    <h3 class="h-small">An important feature</h3>
+                  </div>
+                  <p class="standard-paragraph smaller">One day, after a troubling visit from the giant Catherine Clifford, Chloe leaves her house and sets out in search of three cosy sausages.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-divider"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-home-cta">
+        <div class="container">
+          <div class="padding-vertical">
+            <div class="container">
+              <div class="container-2 _660 text-center">
+                <h2 class="h2">Supported by real people</h2>
+                <p class="standard-paragraph">This is a subheading about 1 sentence in length. Use it to explain how your product solves a meaningful problem.</p>
+              </div><img src="../static/img/Frame-1.png" loading="lazy" sizes="(max-width: 479px) 80vw, (max-width: 767px) 87vw, (max-width: 1279px) 84vw, 960.0000610351562px" srcset="../static/img/Frame-1-p-500.png 500w, ../static/img/Frame-1-p-800.png 800w, ../static/img/Frame-1-p-1080.png 1080w, ../static/img/Frame-1-p-1600.png 1600w, ../static/img/Frame-1.png 1659w" alt="" class="team-image">
+            </div>
+            <div class="home_cta-component">
+              <div class="svg-arrow bottom-left w-embed"><svg width="500" height="auto" viewbox="0 0 48 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.3411 74.1924C18.3411 72.0809 18.3411 69.7582 18.3411 67.6467C18.5525 49.0651 18.9754 30.2725 19.1869 11.6909C19.1869 9.57939 19.1869 7.679 19.3984 5.56747C19.6098 2.82247 20.2442 -0.555987 23.8389 0.0774737C25.3191 0.288627 27.0108 3.45593 27.2222 5.35632C28.0681 20.9817 28.7024 36.3959 29.3368 52.0213C29.5483 55.6109 29.3368 59.2005 31.2399 63.0013C33.7774 58.7782 35.892 54.344 38.6409 50.332C39.9096 48.4317 43.0815 46.3201 44.9846 46.7424C48.7908 47.5871 48.3679 51.8101 47.0992 54.344C41.6013 67.0132 36.1034 79.8936 29.5483 92.1405C25.3191 99.9532 18.9754 99.9532 14.7463 92.1405C9.03698 81.794 4.80785 70.6028 0.155803 59.834C-0.478567 58.567 1.00163 56.4555 1.42454 54.7663C3.11619 55.3997 5.65368 55.3997 6.4995 56.6667C8.61407 59.2005 9.88281 62.579 11.5745 65.5351C13.2661 68.7024 14.9578 71.8697 16.6494 74.8259C17.0723 74.4036 17.7067 74.1924 18.3411 74.1924Z" fill="currentColor"></path>
+                </svg></div><img src="../static/img/decorative-spring.svg" loading="lazy" width="50" alt="" class="decoration-cta-squiggle"><img src="../static/img/three-lines.svg" loading="lazy" width="50" alt="" class="decoration-cta-lines">
+              <h2>Get a well designed landing page for your SaaS product.</h2>
+              <div class="button-wrapper">
+                <a href="#" class="icon-button white w-inline-block">
+                  <div class="flex-row-center">
+                    <div>Get Started</div>
+                    <div class="button-arrow w-embed"><svg class="rubicon-display" width="24" height="24" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12H21M21 12L16.5 6M21 12L16.5 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                      </svg></div>
+                  </div>
+                </a>
+                <div class="button-trigger">No Credit Card Required</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=650f57c238e964525a27dd3f" type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+  <script src="../static/js/webflow.js" type="text/javascript"></script>
+</body>
+</html>
+
+{% endblock %}

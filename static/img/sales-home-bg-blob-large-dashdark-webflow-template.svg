@@ -1,0 +1,30 @@
+<svg width="772" height="820" viewBox="0 0 772 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g opacity="0.7">
+<g filter="url(#filter0_f_4506_52739)">
+<path d="M616.599 322.618C616.599 451.017 398.737 626.341 270.338 626.341C141.94 626.341 102.882 470.551 102.882 342.152C102.882 213.754 168.506 261.962 296.904 261.962C425.303 261.962 616.599 194.22 616.599 322.618Z" fill="#7724FF" fill-opacity="0.2"/>
+</g>
+<g filter="url(#filter1_f_4506_52739)">
+<path d="M636.212 189.229C680.126 309.884 677.598 452.743 556.943 496.658C436.288 540.573 212.136 377.97 168.221 257.315C124.306 136.66 302.186 197.684 422.842 153.769C543.497 109.854 592.297 68.5736 636.212 189.229Z" fill="#332FFF" fill-opacity="0.18"/>
+</g>
+<g filter="url(#filter2_f_4506_52739)">
+<circle cx="449.519" cy="496.564" r="172.726" fill="#2FA7FF" fill-opacity="0.18"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_f_4506_52739" x="0.45018" y="141.673" width="718.581" height="587.101" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="51.2161" result="effect1_foregroundBlur_4506_52739"/>
+</filter>
+<filter id="filter1_f_4506_52739" x="52.3163" y="0.682281" width="719.02" height="612.395" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="54.5418" result="effect1_foregroundBlur_4506_52739"/>
+</filter>
+<filter id="filter2_f_4506_52739" x="127.801" y="174.846" width="643.437" height="643.437" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="74.4961" result="effect1_foregroundBlur_4506_52739"/>
+</filter>
+</defs>
+</svg>

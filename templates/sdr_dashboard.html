@@ -107,7 +107,7 @@
             <td><a href="{{ url_for('account_details', account_id=account.Id) }}" style="font-weight: lighter; color: steelblue" >{{ account.Name }}</a></td>
             <td class="tier-cell" data-account-id="{{ account.Id }}">{{ account.Score|int }}</td>
             <td class="state-cell">{{ account.BillingState }}</td>
-            <td style="background-color: {{ status_color[account.Id] }}; text-align: center;">
+            <td style="color: {{ status_color[account.Id] }}; text-align: center;">
 
                 {% if account.Id in open_opps_by_account %}
                 {{ open_opps_by_account[account.Id] }} Open

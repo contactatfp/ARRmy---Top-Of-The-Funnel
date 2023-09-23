@@ -377,6 +377,74 @@ def load_user(user_id):
     return User.query.get(user_id)
 
 
+@app.route('/test_login', methods=['GET', 'POST'])
+def test_login():
+    name = "kloud101@gmail.com"
+    pw = "Test1234"
+
+    # Salesforce OAuth2 token endpoint
+    url = "https://login.salesforce.com/services/oauth2/token"
+
+    # Build payload with form input and Salesforce App credentials
+    payload = {
+        'grant_type': 'password',
+        'client_id': config['consumer-key'],
+        'client_secret': config['consumer-secret'],
+        'username': name,
+        'password': pw
+    }
+
+    # Set headers for the POST request
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
+
+    # Send the POST request to Salesforce
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    # Check if Salesforce login is successful
+    if response.status_code == 200:
+
+        if not User.query.filter_by(username=name).first():
+            url = "https://login.salesforce.com/services/oauth2/userinfo"
+            token = get_user_token(name, pw)
+            token = token['access_token']
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {token}'
+            }
+
+            get_user_response = requests.get(url, headers=headers)
+            # Create new user if user doesn't exist
+            new_user = User(username=name)
+            new_user.set_password(pw)
+            new_user.id = get_user_response.json()['user_id']
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            get_data()
+            # fix later
+            return redirect(url_for('dash'))
+        else:
+            user = User.query.filter_by(username=name).first()
+            login_user(user)
+            accounts = Account.query.all()
+            # Redirect to appropriate dashboard
+            if user.role == RoleEnum.sales_rep:
+                return redirect(url_for('sales_dashboard'))
+            elif user.role == RoleEnum.sdr:
+                return redirect(url_for('dash'))
+
+            else:
+                return redirect(url_for('index'))
+        flash('Invalid username or password')
+        return redirect(url_for('login'))
+    return render_template('login.html')
+
+
+
+
 @app.route('/')
 def index():
     get_data()
@@ -386,8 +454,8 @@ def index():
         if current_user.role == RoleEnum.sales_rep:
             return redirect(url_for('sales_dashboard'))
         elif current_user.role == RoleEnum.sdr:
-            return redirect(url_for('sdr_dashboard'))
-    return render_template('index.html')
+            return redirect(url_for('dash'))
+    return render_template('home.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -436,7 +504,7 @@ def login():
                 login_user(new_user)
                 get_data()
                 # fix later
-                return redirect(url_for('sdr_dashboard'))
+                return redirect(url_for('dash'))
             else:
                 user = User.query.filter_by(username=form.username.data).first()
                 login_user(user)
@@ -445,13 +513,18 @@ def login():
                 if user.role == RoleEnum.sales_rep:
                     return redirect(url_for('sales_dashboard'))
                 elif user.role == RoleEnum.sdr:
-                    return redirect(url_for('sdr_dashboard'))
+                    return redirect(url_for('dash'))
 
                 else:
                     return redirect(url_for('index'))
         flash('Invalid username or password')
         return redirect(url_for('login'))
     return render_template('login.html', form=form)
+
+
+@app.route('/pricing-faq')
+def pricing_faq():
+    return render_template('pricing-faq.html')
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -463,7 +536,7 @@ def signup():
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
-    return render_template('signup.html', form=form)
+    return render_template('sign-up.html', form=form)
 
 
 @app.route('/logout')
@@ -565,6 +638,34 @@ def get_tier():
 
     return formatted_data
 
+@app.route('/dash2', methods=['GET'])
+def dash2():
+    return render_template('dash2.html')
+
+@app.route('/dash', methods=['GET'])
+def dash():
+    with app.app_context():
+        accounts = Account.query.all()
+        user = User.query.get(current_user.id)
+
+    top5_dict = {}
+    contact_count = {}
+    total = get_open_opps_value()
+    total_closed = get_closed_won_opps_total(days_ago=365)
+    tier1 = tier_one_interactions()
+
+    for account in accounts:
+        top5_contacts = get_top_5_contacts_using_rank_contact(account.Id)
+        top5_dict[account.Id] = top5_contacts
+        contact_count[account.Id] = len(top5_contacts)
+
+        def get_last_interaction(accountId):
+            interaction = Interaction.query.filter_by(account_id=accountId).order_by(
+                Interaction.timestamp.desc()).first()
+            return interaction
+
+    # return render_template('reports-copy.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total=total)
+    return render_template('dashboard.html')
 
 @app.route('/sdr_dashboard', methods=['POST', 'GET'])
 # @login_required
@@ -747,6 +848,9 @@ def get_distance(loc1, loc2):
     distance = float(distance[:-3])
 
     return distance
+
+
+
 
 
 @app.route('/events_in_area', methods=['GET'])
@@ -1767,6 +1871,91 @@ def get_open_opps(days_ago=365):
     return opportunities
 
 
+@app.route('/open_with_amount', methods=['GET', 'POST'])
+def get_open_opps_with_amount(days_ago=365):
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
+    payload = "{\"query\":\"query opportunitiesNotClosed {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          not: {\\n            or: [\\n              { StageName: { eq: \\\"Closed Won\\\" } }\\n              { StageName: { eq: \\\"Closed Lost\\\" } }\\n            ]\\n          }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {  # Add this line\\n              Name {  # And this line\\n                value\\n              }\\n              Id\\n            }\\n            # NextStep {\\n            #   value\\n            # }\\n            CloseDate {\\n              value\\n            #   displayValue\\n            }\\n            # Description {\\n            #   value\\n            # }\\n            Amount{\\n                value\\n            }\\n            StageName {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+    else:
+        token = token['access_token']
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+    response_json = response.json()
+    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+
+    # The filtering logic for the opportunities based on CloseDate can be added here as needed
+
+    return opportunities
+
+
+@app.route('/closed_value', methods=['GET', 'POST'])
+def get_closed_won_opps_value(days_ago=365):
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/graphql"
+
+    token = tokens()
+    if not token:
+        return {"error": "Failed to get Salesforce token"}
+    else:
+        token = token['access_token']
+    payload = "{\"query\":\"query opportunitiesClosedWon {\\n  uiapi {\\n    query {\\n      Opportunity(\\n        where: {\\n          StageName: { eq: \\\"Closed Won\\\" }\\n        }\\n      ) {\\n        edges {\\n          node {\\n            Id\\n            Account {\\n              Name {\\n                value\\n              }\\n              Id \\n            }\\n            CloseDate {\\n              value\\n            }\\n            StageName {\\n              value\\n            }\\n            Amount {\\n              value\\n            }\\n          }\\n        }\\n      }\\n    }\\n  }\\n}\\n\",\"variables\":{}}"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    response_json = response.json()
+    opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
+
+    # The filtering logic for the opportunities based on CloseDate can be added here as needed
+
+    return opportunities
+
+@app.route('/closed_total', methods=['GET', 'POST'])
+def get_closed_won_opps_total(days_ago=365):
+    opps = get_closed_won_opps_value(days_ago)
+    total = 0
+    for opp in opps:
+        opp["node"]["Amount"]["value"] = float(opp["node"]["Amount"]["value"])
+#         total of all closed opps looping through the list
+        total += opp["node"]["Amount"]["value"]
+
+    return total
+
+def tier_one_interactions():
+    with app.app_context():
+        interactions = Interaction.query.join(Account).filter(Account.Score > 74).all()
+        return len(interactions)
+
+
+
+
+
+@app.route('/open_value', methods=['GET', 'POST'])
+def get_open_opps_value(days_ago=365):
+    opportunities = get_open_opps_with_amount(days_ago)
+
+    total = 0
+    for opportunity in opportunities:
+        # Check if "Amount" key exists before processing
+        if "Amount" in opportunity["node"] and "value" in opportunity["node"]["Amount"]:
+            opportunity["node"]["Amount"]["value"] = float(opportunity["node"]["Amount"]["value"])
+            total += opportunity["node"]["Amount"]["value"]
+
+
+    return total
+
+
+
+
 def create_api_request(method, url, token, data=None):
     """
     Function to create and send an API request.
@@ -1801,7 +1990,7 @@ def data():
     rank = main.scheduled_rank_companies()
     # prospect = main.prospecting()
 
-    return redirect(url_for('sdr_dashboard'))
+    return redirect(url_for('dash'))
 
 
 def process_response(response, model):
