@@ -645,29 +645,30 @@ def dash2():
 @app.route('/dash', methods=['GET'])
 def dash():
     # temporary comment out for speed
-    # with app.app_context():
-    #     accounts = Account.query.all()
-    #     user = User.query.get(current_user.id)
-    #
-    # top5_dict = {}
-    # contact_count = {}
-    # total = get_open_opps_value()
-    # total_closed = get_closed_won_opps_total(days_ago=365)
-    # tier1 = tier_one_interactions()
-    #
-    # for account in accounts:
-    #     top5_contacts = get_top_5_contacts_using_rank_contact(account.Id)
-    #     top5_dict[account.Id] = top5_contacts
-    #     contact_count[account.Id] = len(top5_contacts)
-    #
-    #     def get_last_interaction(accountId):
-    #         interaction = Interaction.query.filter_by(account_id=accountId).order_by(
-    #             Interaction.timestamp.desc()).first()
-    #         return interaction
+    with app.app_context():
+        accounts = Account.query.all()
+        user = User.query.get(current_user.id)
+
+    top5_dict = {}
+    contact_count = {}
+    total_open = get_open_opps_value()
+    total_closed = get_closed_won_opps_total(days_ago=365)
+    tier1 = tier_one_interactions()
+
+    for account in accounts:
+        top5_contacts = get_top_5_contacts_using_rank_contact(account.Id)
+        top5_dict[account.Id] = top5_contacts
+        contact_count[account.Id] = len(top5_contacts)
+
+        def get_last_interaction(accountId):
+            interaction = Interaction.query.filter_by(account_id=accountId).order_by(
+                Interaction.timestamp.desc()).first()
+            return interaction
 
     # return render_template('reports-copy.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total=total)
     # end of temporary comment out for speed
-    return render_template('dashboard.html')
+    return render_template('dashboard.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total_open=total_open)
+
 
 @app.route('/sdr_dashboard', methods=['POST', 'GET'])
 # @login_required
