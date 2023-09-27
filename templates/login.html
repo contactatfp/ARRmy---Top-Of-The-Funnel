@@ -21,8 +21,9 @@
       <div class="container">
         <div class="flex-stack-center">
           <div class="form-wrapper w-form">
-            <form id="wf-form-login" name="wf-form-login" data-name="login" method="get" data-ms-form="login" class="form-container" data-wf-page-id="650f593a788d34c590106c88" data-wf-element-id="79e38668-a105-bb00-2eaf-44599abf8bd5">
-              <div class="margin-bottom">
+            <form id="wf-form-login" name="wf-form-login" data-name="login" method="post" action="{{ url_for('login') }}" data-ms-form="login" class="form-container" data-wf-page-id="650f593a788d34c590106c88" data-wf-element-id="79e38668-a105-bb00-2eaf-44599abf8bd5">{{ form.csrf_token }}
+
+                <div class="margin-bottom">
                 <h2 class="h2">Login</h2>
               </div>
               <div class="_100">
@@ -44,7 +45,7 @@
                   <div class="form-div-line"></div>
                 </div>
               </div>
-              <div class="text-field-wrapper"><label for="email" class="input-label">Email</label><input type="email" class="input w-input" maxlength="256" name="email-2" data-name="Email 2" placeholder="e.g. howard.thurman@gmail.com" id="email-2" data-ms-member="email" required=""></div>
+              <div class="text-field-wrapper"><label for="email" class="input-label">Email</label><input type="email" class="input w-input" maxlength="256" name="username"  placeholder="e.g. howard.thurman@gmail.com" id="email-2" data-ms-member="email" required=""></div>
               <div class="text-field-wrapper">
                 <div class="relative-2"><label for="Password" class="input-label">Password</label>
                   <div data-current="Show" data-easing="ease" data-duration-in="300" data-duration-out="100" class="show-hide-wrap w-tabs">
@@ -70,11 +71,11 @@
                       <div data-w-tab="Hide" class="w-tab-pane"></div>
                     </div>
                   </div>
-                </div><input type="password" data-show="true" class="input w-input" maxlength="256" name="Password" data-name="Password" placeholder="8+ characters" id="field" data-ms-member="password" required="">
+                </div><input type="password" data-show="true" class="input w-input" maxlength="256" name="password" placeholder="8+ characters" id="field" data-ms-member="password" required="">
               </div>
               <div class="flex-row-outer-2 margin-bottom">
                 <a data-ms-modal="forgot-password" href="#" class="forgot-password">Forgot password</a>
-              </div><input type="submit" value="Get Started →" data-wait="Please wait..." class="icon-button w-button">
+              </div><input type="submit" value="Login →" data-wait="Please wait..." class="icon-button w-button">
               <div class="show-hide-code w-embed w-script">
                 <script>
 //attach a click handler to the button to make it transform when clicked, via our transform() function below

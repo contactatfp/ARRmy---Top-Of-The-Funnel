@@ -136,6 +136,23 @@
     cursor: pointer;
   }
 
+  .parent-top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .small-dropdown-link.w-dropdown-link {
+    background-color: transparent;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .small-dropdown-link.w-dropdown-link:hover {
+    color: white;
+    font-weight: bold;
+  }
+
+
 
 
 </style>
@@ -156,18 +173,30 @@
                   {% endif %}
                   <p class="mg-bottom-0">Measure your sales ROI on your Tier 1 accounts.</p>
                 </div>
-<!--                <div id="w-node-be246f26-a62f-48d4-76dd-5d34ac0a0daf-7aa1ef4f" class="buttons-row">-->
-<!--                  <a href="#" class="btn-secondary w-inline-block">-->
-<!--                    <div class="flex-horizontal gap-column-6px">-->
-<!--                      <div>Export data</div><img src="../static/img/downward-arrow-btn-icon-dashdark-webflow-ecommerce-template.svg" loading="eager" alt="" class="btn-icon-right max-h-12px">-->
-<!--                    </div>-->
-<!--                  </a>-->
-<!--                  <a href="#" class="btn-primary w-inline-block">-->
-<!--                    <div class="flex-horizontal gap-column-6px">-->
-<!--                      <div>Create report</div>-->
-<!--                    </div>-->
-<!--                  </a>-->
-<!--                </div>-->
+
+                <div>
+                  <div class="dropdown-container" style="position: relative">
+                    <div data-hover="true" data-delay="0" data-w-id="9cc462d8-bb30-3faf-01e2-89a59eb05ad4" class="mg-sides-0 position-relative---z-index-1 w-dropdown">
+                      <div class="small-dropdown-toggle w-dropdown-toggle">
+                        <div class="flex align-center gap-column-4px">
+                          <div class="dashlight-custom-icon line-height-1em"></div>
+                          <div class="text-65 medium">Select Date Range</div>
+                        </div>
+                        <div class="line-rounded-icon card-dropdown-arrow"></div>
+                      </div>
+                      <nav class="w-dropdown-list">
+                        <div class="small-dropdown-links-container" style="background: white; border: white;">
+                          <form action="{{ url_for('dash') }}" method="post">
+                            <button class="small-dropdown-link w-dropdown-link" name="time_period" value="7" style="color: black; font-size: 15px">Close in 7 days</button>
+                            <button class="small-dropdown-link w-dropdown-link" name="time_period" value="30" style="color: black; font-size: 15px">Close in 30 days</button>
+                            <button class="small-dropdown-link w-dropdown-link" name="time_period" value="90" style="color: black; font-size: 15px">Close in 3 months</button>
+                            <button class="small-dropdown-link w-dropdown-link" name="time_period" value="365" style="color: black; font-size: 15px">Close in 1 year</button>
+                          </form>
+                        </div>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="mg-bottom-16px">
@@ -179,12 +208,15 @@
                     </div>
                     <div class="dashdark-custom-icon details-icon"></div>
                   </div>
+
+
+
                   <div class="flex align-center gap-column-6px">
                     <div class="display-4">
                       {% if total_open > 1000000 %}
                       ${{ total_open/1000000 }}M
                       {% elif total_open > 1000 %}
-                      ${{ total+open/1000 }}K
+                      ${{ total_open/1000 }}K
                       {% else %}
                       ${{ total_open }}
                       {% endif %}
@@ -332,7 +364,7 @@
                                   <div class="dashdark-custom-icon line-height-1em"></div>
                                   <div class="text-50 medium">Jan 2024</div>
                                 </div>
-                                <div class="line-rounded-icon card-dropdown-arrow"></div>
+                                <div class="line-rounded-icon card-dropdown-arrow"></div>
                               </div>
                               <nav class="small-dropdown-list w-dropdown-list">
                                 <div class="small-dropdown-links-container">
@@ -621,6 +653,39 @@
 
     });
   </script>
+
+  <script>
+    $(document).ready(function() {
+      $("#recalculateButton").click(function() {
+        var selectedDays = $("#timeDropdown").val();
+        $.get("/open_value", { days_ago: selectedDays }, function(data) {
+          // Assuming you have an HTML element with id="openOpportunitiesValue" to display the value
+          $("#openOpportunitiesValue").text(data.total);
+        });
+      });
+    });
+
+  </script>
+
+  <script>// Function to update the display text when a button is clicked
+  function updateDateRangeText(event) {
+    // Grab the text of the clicked button
+    let selectedText = event.target.innerText;
+
+    // Update the display text
+    document.querySelector(".text-65.medium").innerText = selectedText;
+
+    // Submit the form
+    event.target.closest("form").submit();
+  }
+
+  // Attach the click event listener to each button
+  document.querySelectorAll(".small-dropdown-link").forEach(function(button) {
+    button.addEventListener("click", updateDateRangeText);
+  });
+  </script>
+
+
 
 
   {% endblock %}

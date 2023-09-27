@@ -31,7 +31,6 @@ from flask_caching import Cache
 import faker
 from app.voice_assist import voice_blueprint
 
-
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
 app.register_blueprint(voice_blueprint)
@@ -443,8 +442,6 @@ def test_login():
     return render_template('login.html')
 
 
-
-
 @app.route('/')
 def index():
     get_data()
@@ -461,7 +458,9 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
         # Salesforce OAuth2 token endpoint
         url = "https://login.salesforce.com/services/oauth2/token"
 
@@ -470,8 +469,8 @@ def login():
             'grant_type': 'password',
             'client_id': config['consumer-key'],
             'client_secret': config['consumer-secret'],
-            'username': form.username.data,
-            'password': form.password.data
+            'username': username,
+            'password': password
         }
 
         # Set headers for the POST request
@@ -638,20 +637,25 @@ def get_tier():
 
     return formatted_data
 
+
 @app.route('/dash2', methods=['GET'])
 def dash2():
     return render_template('dash2.html')
 
-@app.route('/dash', methods=['GET'])
+
+@app.route('/dash', methods=['GET', 'POST'])
 def dash():
+    days_ago = 365  # default value
+
     # temporary comment out for speed
     with app.app_context():
         accounts = Account.query.all()
         user = User.query.get(current_user.id)
-
+    if request.method == 'POST':
+        days_ago = int(request.form.get('time_period'))
     top5_dict = {}
     contact_count = {}
-    total_open = get_open_opps_value()
+    total_open = get_open_opps_value(days_ago)
     total_closed = get_closed_won_opps_total(days_ago=365)
     tier1 = tier_one_interactions()
 
@@ -667,7 +671,9 @@ def dash():
 
     # return render_template('reports-copy.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total=total)
     # end of temporary comment out for speed
-    return render_template('dashboard.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total_open=total_open)
+    return render_template('dashboard.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed,
+                           contact_count=contact_count, get_last_interaction=get_last_interaction,
+                           total_open=total_open)
 
 
 @app.route('/sdr_dashboard', methods=['POST', 'GET'])
@@ -851,9 +857,6 @@ def get_distance(loc1, loc2):
     distance = float(distance[:-3])
 
     return distance
-
-
-
 
 
 @app.route('/events_in_area', methods=['GET'])
@@ -1318,6 +1321,37 @@ def logACall():
         return jsonify({"success": True})
     else:
         return jsonify({"success": False})
+
+@app.route('/create_opp', methods=['GET','POST'])
+def create_opportunity():
+    # Define the endpoint URL for creating a new Opportunity
+    url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/Opportunity"
+
+    # Define the Opportunity data
+    data = {
+        "Name": "Test Opportunity",
+        "CloseDate": "2023-10-10",
+        "StageName": "Prospecting",
+        "Amount": 10000
+    }
+    token = tokens()
+    token = token['access_token']
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+
+    if response.status_code == 201:
+        return response.json()  # Returns the ID of the newly created Opportunity
+    else:
+        return response.text  # Returns the error message
+
+
+
+
+
 
 
 @app.route('/getContacts', methods=['GET'])
@@ -1891,11 +1925,21 @@ def get_open_opps_with_amount(days_ago=365):
 
     response = requests.request("POST", url, headers=headers, data=payload)
     response_json = response.json()
+
     opportunities = response_json["data"]["uiapi"]["query"]["Opportunity"]["edges"]
 
-    # The filtering logic for the opportunities based on CloseDate can be added here as needed
+    # Define the end date as today + days_ago
+    end_date = datetime.today().date() + timedelta(days=days_ago)
 
-    return opportunities
+    # Filter opportunities based on CloseDate
+    filtered_opportunities = []
+    for opportunity in opportunities:
+        close_date_str = opportunity["node"]["CloseDate"]["value"]
+        close_date = datetime.strptime(close_date_str, "%Y-%m-%d").date()
+        if end_date >= close_date >= datetime.today().date():
+            filtered_opportunities.append(opportunity)
+
+    return filtered_opportunities
 
 
 @app.route('/closed_value', methods=['GET', 'POST'])
@@ -1922,24 +1966,23 @@ def get_closed_won_opps_value(days_ago=365):
 
     return opportunities
 
+
 @app.route('/closed_total', methods=['GET', 'POST'])
-def get_closed_won_opps_total(days_ago=365):
+def get_closed_won_opps_total(days_ago):
     opps = get_closed_won_opps_value(days_ago)
     total = 0
     for opp in opps:
         opp["node"]["Amount"]["value"] = float(opp["node"]["Amount"]["value"])
-#         total of all closed opps looping through the list
+        #         total of all closed opps looping through the list
         total += opp["node"]["Amount"]["value"]
 
     return total
+
 
 def tier_one_interactions():
     with app.app_context():
         interactions = Interaction.query.join(Account).filter(Account.Score > 74).all()
         return len(interactions)
-
-
-
 
 
 @app.route('/open_value', methods=['GET', 'POST'])
@@ -1953,10 +1996,7 @@ def get_open_opps_value(days_ago=365):
             opportunity["node"]["Amount"]["value"] = float(opportunity["node"]["Amount"]["value"])
             total += opportunity["node"]["Amount"]["value"]
 
-
     return total
-
-
 
 
 def create_api_request(method, url, token, data=None):

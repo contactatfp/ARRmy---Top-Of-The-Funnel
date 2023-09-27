@@ -51,13 +51,14 @@ def rank_companies():
 
     # Scoring for open opportunities in the next 6 months
     for opp in open_opps:
-        acc_id = opp["node"]["Account"]["Id"]
-        close_date = datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d')
-        days_until_close = (close_date - datetime.now()).days
-        if 180 >= days_until_close > 0:
-            scores[acc_id] += 20
-        elif days_until_close < 0:
-            scores[acc_id] += 12
+        if opp["node"]["Account"] is not None:
+            acc_id = opp["node"]["Account"]["Id"]
+            close_date = datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d')
+            days_until_close = (close_date - datetime.now()).days
+            if 180 >= days_until_close > 0:
+                scores[acc_id] += 20
+            elif days_until_close < 0:
+                scores[acc_id] += 12
 
     # # Ensure no score exceeds 99
     # for acc_id in scores:
