@@ -103,6 +103,28 @@
     /*box-shadow: 0 4px 7px rgba(0, 0, 0, 0.3);   !* darkens the shadow a bit on hover *!*/
   }
 
+  .sql-cell .paragraph-small.color-neutral-100 {
+    background-color: lightslategrey;
+    height: 90%;          /* slightly less than full height to give some padding effect */
+    width: 90%;           /* slightly less than full width to give some padding effect */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    border: 2px solid white;   /* adds a border */
+    border-radius: 5px;        /* rounds the corners */
+    transition: transform 0.2s, box-shadow 0.2s; /* smoothens the hover effect */
+    /*box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);    !* adds a subtle shadow *!*/
+    text-align: center;        /* ensures text is centered */
+    padding: 5px;              /* provides some space around the text */
+  }
+
+  .sql-cell .paragraph-small.color-neutral-100:hover {
+    transform: translateY(-1px);    /* gives a subtle lift effect on hover */
+    /*box-shadow: 0 4px 7px rgba(0, 0, 0, 0.3);   !* darkens the shadow a bit on hover *!*/
+  }
+
   /* Styles for active column header */
   .sort-active {
     position: relative;
@@ -234,21 +256,25 @@
                 <div id="w-node-be246f26-a62f-48d4-76dd-5d34ac0a0dd9-7aa1ef4f" class="card top-details">
                   <div class="flex-horizontal justify-space-between">
                     <div class="flex align-center gap-column-4px"><img src="../static/img/monthly-users-icon-dashdark-webflow-template.svg" loading="eager" alt="Lost Deals - ARRPlan" class="max-h-16px">
-                      <div class="text-100 medium mg-top-2px">Lost Deals</div>
+                      <div class="text-100 medium mg-top-2px">Ask A Question</div>
                     </div>
                     <div class="dashdark-custom-icon details-icon"></div>
                   </div>
                   <div class="flex align-center gap-column-6px">
-                    <div class="display-4">$200k</div>
+                    <div class="display-4 sql">{{ ask_sql }}</div>
                     <div>
-                      <div class="status-badge red">
-                        <div class="flex align-center gap-column-4px">
-                          <div class="paragraph-small">12.6%</div>
-                        </div>
-                        <div class="dashdark-custom-icon icon-size-9px">v</div>
-                      </div>
+<!--                      <div class="status-badge red">-->
+<!--                        <div class="flex align-center gap-column-4px">-->
+<!--                          <div class="paragraph-small">12.6%</div>-->
+<!--                        </div>-->
+<!--                        <div class="dashdark-custom-icon icon-size-9px">v</div>-->
+<!--                      </div>-->
                     </div>
                   </div>
+                  <div class="sql-cell">
+                    <div class="paragraph-small color-neutral-100" id="openSqlModal">How many accounts have a score over 50?</div>
+                  </div>
+
                 </div>
                 <div id="w-node-be246f26-a62f-48d4-76dd-5d34ac0a0df4-7aa1ef4f" class="card top-details">
                   <div class="flex-horizontal justify-space-between">
@@ -340,7 +366,7 @@
                 <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Accounts</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Opportunities</button>
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Opps</button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false">Events</button>
@@ -543,6 +569,28 @@
           </div>
         </div>
       </div>
+
+      <!-- SQL Modal -->
+      <div id="sqlModal" class="modal fade" tabindex="-1" aria-labelledby="sqlModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="sqlModalLabel" style="color: #0a163c">Enter Your Query</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <textarea id="sqlQueryInput" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button id="saveSqlQuery" type="button" class="btn btn-primary">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
     </div>
   </div>
 
@@ -662,6 +710,12 @@
           // Assuming you have an HTML element with id="openOpportunitiesValue" to display the value
           $("#openOpportunitiesValue").text(data.total);
         });
+
+        $.get("/tier1_interactions", { days_ago: selectedDays }, function(data) {
+          // Assuming you have an HTML element with id="tier1Value" to display the value
+          $("#tier1Value").text(data.total);
+        });
+
       });
     });
 
@@ -684,6 +738,34 @@
     button.addEventListener("click", updateDateRangeText);
   });
   </script>
+
+  <script>
+    // Create the modal instance once
+    var sqlModal = new bootstrap.Modal(document.getElementById('sqlModal'));
+
+    document.getElementById('openSqlModal').addEventListener('click', function() {
+      sqlModal.show();
+    });
+
+    document.getElementById('saveSqlQuery').addEventListener('click', function() {
+      const query = document.getElementById('sqlQueryInput').value;
+
+      // Update the pill button text
+      document.getElementById('openSqlModal').innerText = query;
+
+      fetch(`/ask_sql?query=${encodeURIComponent(query)}`)
+              .then(response => response.json())
+              .then(data => {
+                // Target the correct div to display the result
+                document.querySelector('.display-4.sql').innerText = data.result;
+                sqlModal.hide();
+              });
+    });
+
+
+  </script>
+
+
 
 
 

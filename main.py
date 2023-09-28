@@ -658,6 +658,9 @@ def dash():
     total_open = get_open_opps_value(days_ago)
     total_closed = get_closed_won_opps_total(days_ago=365)
     tier1 = tier_one_interactions()
+    answer = language_sql()
+    test = answer.get_json()
+    test = test['result']
 
     for account in accounts:
         top5_contacts = get_top_5_contacts_using_rank_contact(account.Id)
@@ -669,11 +672,13 @@ def dash():
                 Interaction.timestamp.desc()).first()
             return interaction
 
+
+
     # return render_template('reports-copy.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total=total)
     # end of temporary comment out for speed
     return render_template('dashboard.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed,
                            contact_count=contact_count, get_last_interaction=get_last_interaction,
-                           total_open=total_open)
+                           total_open=total_open, ask_sql=test)
 
 
 @app.route('/sdr_dashboard', methods=['POST', 'GET'])
@@ -1978,10 +1983,13 @@ def get_closed_won_opps_total(days_ago):
 
     return total
 
-
-def tier_one_interactions():
+@app.route('/tier1_interactions', methods=['GET', 'POST'])
+def tier_one_interactions(timeframe=365):
     with app.app_context():
-        interactions = Interaction.query.join(Account).filter(Account.Score > 74).all()
+        # list out all interactions with an account.Score > 70 and interaction happened with timeframe days ago
+        # interactions = Interaction.query.join(Account).filter(Account.Score > 74).all()
+        interactions = Interaction.query.join(Account).filter(Interaction.timestamp > (datetime.now() - timedelta(days=timeframe)),
+                                                Account.Score > 70).all()
         return len(interactions)
 
 
@@ -1997,6 +2005,22 @@ def get_open_opps_value(days_ago=365):
             total += opportunity["node"]["Amount"]["value"]
 
     return total
+
+@app.route('/ask_sql', methods=['GET', 'POST'])
+def language_sql():
+    from langchain.utilities import SQLDatabase
+    from langchain.llms import OpenAI
+    from langchain_experimental.sql import SQLDatabaseChain
+
+    # get input from the request
+    query = request.args.get('query', default='How many accounts have a score over 50?', type=str)
+    db = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
+    llm = OpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", verbose=True, openai_api_key=config['openai_api-key'])
+    db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
+
+    answer = db_chain.run(query)
+
+    return jsonify({"result": answer})
 
 
 def create_api_request(method, url, token, data=None):
