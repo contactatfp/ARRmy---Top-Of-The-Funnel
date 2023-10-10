@@ -24,9 +24,10 @@ import main
 from app.forms import EventForm
 from app.forms import SignupForm, LoginForm, InvitationForm
 from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address, Invitation, \
-    InvitationStatus
+    InvitationStatus, Alert, AlertType, FeedItem, FeedItemType, EventType
 from app.prospecting import bio_blueprint
 from app.rank_algo import rank_companies
+from app.feed import feed_blueprint
 from flask_caching import Cache
 import faker
 from app.voice_assist import voice_blueprint
@@ -34,6 +35,7 @@ from app.voice_assist import voice_blueprint
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
 app.register_blueprint(voice_blueprint)
+app.register_blueprint(feed_blueprint)
 
 cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(app)
@@ -318,8 +320,8 @@ def rank_contact(contact_id):
     if contact is not None:
         job_title = contact.Title if contact.Title else ""  # Use an empty string if JobTitle is None
 
-        # Default rank is 0 if no key phrase exists in the job title
-        rank = 0
+        # Default rank is 1 if no key phrase exists in the job title
+        rank = 1
 
         for key in rank_dict.keys():
             if key in job_title:
@@ -332,6 +334,52 @@ def rank_contact(contact_id):
         # Commit the change to the database
         db.session.commit()
     return rank
+
+
+@app.route('/rank_all_contacts', methods=['GET'])
+def rank_all_contacts():
+    # Your rank dictionary
+    rank_dict = {
+        "None": 1,
+        "Executive": 2,
+        "Manager": 3,
+        "Senior Executive": 4,
+        "Director": 5,
+        "Head": 6,
+        "Senior Partner": 7,
+        "Vice": 8,  # This will cover all Vice President roles
+        "President": 9,
+        "COO": 10,
+        "CTO": 11,
+        "CIO": 12,
+        "CSO": 13,
+        "CFO": 14,
+        "CEO": 15,
+        "Chief": 15,  # This will cover all Chief roles
+    }
+
+    # Fetch all contacts
+    all_contacts = Contact.query.all()
+
+    # Loop through each contact and rank them
+    for contact in all_contacts:
+        job_title = contact.Title if contact.Title else ""  # Use an empty string if Title is None
+
+        # Default rank is 1 if no key phrase exists in the job title
+        rank = 1
+
+        for key in rank_dict.keys():
+            if key in job_title:
+                # Assign the highest rank if the job title contains multiple key phrases
+                rank = max(rank, rank_dict[key])
+
+        # Update the contact JobRank field
+        contact.JobRank = rank
+
+    # Commit all the changes to the database
+    db.session.commit()
+
+    return "All contacts ranked successfully!"
 
 
 def get_top_5_contacts_using_rank_contact(account_id):
@@ -596,28 +644,56 @@ def save_notes():
     return jsonify(status="success", message="Notes updated successfully")
 
 
-@app.route('/tier', methods=['GET'])
-def get_tier():
-    account_id = request.args.get('id')
+@app.route('/update-tier/<account_id>', methods=['POST'])
+def update_tier(account_id):
+    try:
+        account = Account.query.get(account_id)
+        new_tier = request.form.get('tier')
+        account.Rank = new_tier
+        db.session.commit()
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+
+
+@app.route('/get_account_name', methods=['GET'])
+def get_account_name():
+    account_id = request.args.get('account_id')
+    if not account_id:
+        return jsonify({"error": "Missing account_id parameter"}), 400
+
+    account = Account.query.filter_by(Id=account_id).first()
+    if account:
+        return jsonify({"AccountName": account.Name})
+    else:
+        return jsonify({"error": "Account not found"}), 404
+
+
+@app.route('/tier/<account_id>', methods=['GET'])
+def get_tier(account_id):
     account = Account.query.get(account_id)
 
     # get all opportunities for account that closed won in last 12 months
     closed_won_opps = get_closed_won_opps()
 
-    # sort all opps for this for close in the last 12 months
-    closed_won_opps = list(filter(
-        lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') > datetime.now() - timedelta(
-            days=365), closed_won_opps))
-    closed_won_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, closed_won_opps))
+    # Filter closed_won_opps
+    closed_won_opps = [opp for opp in closed_won_opps if
+                       opp and opp.get("node") and opp["node"].get("CloseDate") and datetime.strptime(
+                           opp["node"]["CloseDate"].get("value", "1900-01-01"),
+                           '%Y-%m-%d') > datetime.now() - timedelta(days=365)]
+    closed_won_opps = [opp for opp in closed_won_opps if
+                       opp.get("node") and opp["node"].get("Account") and opp["node"]["Account"].get(
+                           "Id") == account_id]
 
     # get all opportunities for account that are open
     open_opps = get_open_opps()
-    open_opps = list(filter(lambda opp: opp["node"]["Account"]["Id"] == account_id, open_opps))
 
-    # sort all opps for this for close in the next 6 months
-    open_opps = list(filter(
-        lambda opp: datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d') < datetime.now() + timedelta(
-            days=180), open_opps))
+    # Filter open_opps
+    open_opps = [opp for opp in open_opps if
+                 opp and opp.get("node") and opp["node"].get("Account") and opp["node"]["Account"].get(
+                     "Id") == account_id]
+    open_opps = [opp for opp in open_opps if opp.get("node") and opp["node"].get("CloseDate") and datetime.strptime(
+        opp["node"]["CloseDate"].get("value", "1900-01-01"), '%Y-%m-%d') < datetime.now() + timedelta(days=180)]
 
     # Format the data
     formatted_data = f"<strong>Rank:</strong> {account.Rank if account else 'N/A'}<br>"
@@ -625,15 +701,17 @@ def get_tier():
     formatted_data += f"<strong>Open Opportunities:</strong> {len(open_opps)}<br>"
     total_won = 0
     for opp in closed_won_opps:
-        formatted_data += f"<span class='closed-won-opp'><strong>Closed Won Opp:</strong> Closed on {opp['node']['CloseDate']['value']}</span><br>"
-        if len(closed_won_opps) > 0:
-            total_won += opp["node"]["Amount"]["value"]
+        close_date = opp.get("node", {}).get("CloseDate", {}).get("value", "")
+        formatted_data += f"<span class='closed-won-opp'><strong>Closed Won Opp:</strong> Closed on {close_date}</span><br>"
+        total_won += opp.get("node", {}).get("Amount", {}).get("value", 0)
+
     if total_won > 0:
         total_won = int(total_won)
         formatted_data += f"<span class='closed-won-opp'><br><strong>Total Closed in Last 12: $</strong>{total_won}</span><br>"
 
     for opp in open_opps:
-        formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {opp['node']['CloseDate']['value']}</span><br>"
+        close_date = opp.get("node", {}).get("CloseDate", {}).get("value", "")
+        formatted_data += f"<span class='open-opp'><strong>Open Opp:</strong> Should close on {close_date}</span><br>"
 
     return formatted_data
 
@@ -647,12 +725,13 @@ def dash2():
 def dash():
     days_ago = 365  # default value
 
-    # temporary comment out for speed
     with app.app_context():
         accounts = Account.query.all()
         user = User.query.get(current_user.id)
+
     if request.method == 'POST':
-        days_ago = int(request.form.get('time_period'))
+        days_ago = int(request.form.get('time_period', days_ago))
+
     top5_dict = {}
     contact_count = {}
     total_open = get_open_opps_value(days_ago)
@@ -660,25 +739,57 @@ def dash():
     tier1 = tier_one_interactions()
     answer = language_sql()
     test = answer.get_json()
-    test = test['result']
+    sql = test['result']
+
+    def days_since_event(event_timestamp):
+        if event_timestamp:
+            delta = datetime.now() - event_timestamp
+            return delta.days
+        return None
+
+    # Query latest interactions for all accounts in one go
+    latest_calls = {i.account_id: i.timestamp for i in
+                    Interaction.query.filter_by(interaction_type="call").order_by(Interaction.timestamp.desc()).all()}
+    latest_meetings = {i.account_id: i.timestamp for i in
+                       Interaction.query.filter_by(interaction_type="meeting").order_by(
+                           Interaction.timestamp.desc()).all()}
+
+    # Query latest opportunities for all accounts in one go
+    latest_opps = {}
+    for opp in get_open_opps():  # Assuming get_open_opps returns all opportunities
+        if opp["node"]["Account"]:
+            account_id = opp["node"]["Account"]["Id"]
+        else:
+            account_id = None
+        close_date = datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d')
+        if account_id not in latest_opps or close_date > latest_opps[account_id]:
+            latest_opps[account_id] = close_date
 
     for account in accounts:
         top5_contacts = get_top_5_contacts_using_rank_contact(account.Id)
         top5_dict[account.Id] = top5_contacts
         contact_count[account.Id] = len(top5_contacts)
 
-        def get_last_interaction(accountId):
-            interaction = Interaction.query.filter_by(account_id=accountId).order_by(
-                Interaction.timestamp.desc()).first()
-            return interaction
+    def get_last_call(accountId):
+        return days_since_event(latest_calls.get(accountId))
 
+    def get_last_meeting(accountId):
+        return days_since_event(latest_meetings.get(accountId))
 
+    def get_last_opp(accountId):
+        return days_since_event(latest_opps.get(accountId))
 
-    # return render_template('reports-copy.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed, contact_count=contact_count, get_last_interaction=get_last_interaction, total=total)
-    # end of temporary comment out for speed
-    return render_template('dashboard.html', accounts=accounts, tier1=tier1, user=user, total_closed=total_closed,
-                           contact_count=contact_count, get_last_interaction=get_last_interaction,
-                           total_open=total_open, ask_sql=test)
+    return render_template('dashboard.html',
+                           accounts=accounts,
+                           tier1=tier1,
+                           user=user,
+                           total_closed=total_closed,
+                           contact_count=contact_count,
+                           total_open=total_open,
+                           ask_sql=sql,
+                           get_last_meeting=get_last_meeting,
+                           get_last_opp=get_last_opp,
+                           get_last_call=get_last_call)
 
 
 @app.route('/sdr_dashboard', methods=['POST', 'GET'])
@@ -739,12 +850,44 @@ from datetime import datetime
 @app.route('/events_page')
 def events_page():
     # Retrieve all events from the database
-    # with app.context
     with app.app_context():
-        events = Event.query.options(joinedload(Event.location)).all()
-
+        events = Event.query.all()
     # Render the events page and pass the events to the template
     return render_template('events_page.html', events=events)
+
+
+def generate_event_alert_for_nearby_users(event):
+    miles_from_event = 50  # Distance in miles
+    alert_contacts = []
+    user_id = current_user.id  # Assuming this is the same for all accounts
+    alert_message = f"The {event.name} event is now open for registration. It will be held in {event.city}, {event.state} on {event.start_time}."
+
+    accounts = Account.query.all()
+
+    for account in accounts:
+        if not (account.BillingCity and event.city):
+            continue
+
+        distance = get_distance(account.BillingCity, event.city)
+
+        if distance > miles_from_event:
+            continue
+
+        if event.event_type == "company_hosted":
+            contacts = Contact.query.filter(
+                Contact.AccountId == account.Id,
+                Contact.JobRank >= event.audience
+            ).all()
+            alert_contacts += contacts
+
+    if event.event_type == "company_hosted" and alert_contacts:
+        alert_message += f"<br> Signup here: <a href='{event.registration_link}'>{event.registration_link}</a>."
+        alert_message += f"<br> Here is a list of contacts that are suitable for the event: {alert_contacts}"
+
+    feed_item = FeedItem(user_id=user_id, feed_item_type=FeedItemType.alert, content=alert_message)
+    feed_item.set_alert_contacts(alert_contacts)
+    db.session.add(feed_item)
+    db.session.commit()
 
 
 @app.route('/add_event', methods=['GET', 'POST'])
@@ -756,7 +899,6 @@ def add_event():
         data = request.form
 
         # Extract data fields
-
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
 
@@ -765,12 +907,12 @@ def add_event():
         end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M")
 
         street, city, state, country = parse_location(form.location.data)
-        address = Address(
-            street=street,
-            city=city,
-            state=state,
-            country=country
-        )
+        # address = Address(
+        #     street=street,
+        #     city=city,
+        #     state=state,
+        #     country=country
+        # )
         # db.session.add(address)
         # db.session.commit()
 
@@ -781,19 +923,47 @@ def add_event():
             end_time=end_time,
             audience=form.audience.data,
             event_type=form.event_type.data,
-            location=address,
+
             cost=form.cost.data,
             created_by=current_user.id,
             created_at=datetime.now(),
             sponsor=form.sponsor.data,
             expected_attendees=form.expected_attendees.data,
             actual_attendees=form.actual_attendees.data,
-            marketing_channel=form.marketing_channel.data
+            marketing_channel=form.marketing_channel.data,
+            # NEW FORM FIELDS
+            registration_link=form.registration_link.data,
+            responsibility=form.responsibility.data,
+            street_address=parse_location(form.location.data)[0],
+            city=parse_location(form.location.data)[1],
+            state=parse_location(form.location.data)[2],
+            # zip_code=parse_location(form.location.data)[3],
+            industry=form.industry.data,
         )
+
+        # Generate an alert
+        # generate_event_alert(event)
+        # Generate an alert for nearby users
+        generate_event_alert_for_nearby_users(event)
+
         db.session.add(event)
         db.session.commit()
         return redirect(url_for('events_page'))
     return render_template('add_event.html', form=form)
+
+
+# def generate_event_alert(event):
+#     if event.event_type == "company_hosted":
+#         message = f"The {event.name} is now open for registration. It will be held in {event.city}, {event.state} on {event.start_time}. Signup here: {event.registration_link}"
+#     else:
+#         message = f"The {event.name} is now open for registration. It will be held in {event.city}, {event.state} on {event.start_time}. "
+#     new_alert = Alert(
+#         alert_type=AlertType.new_event,
+#         message=message,
+#         user_id=current_user.id
+#     )
+#     db.session.add(new_alert)
+#     db.session.commit()
 
 
 def parse_location(location_string):
@@ -837,14 +1007,14 @@ def to_dict(self):
     }
 
 
-def get_distance(loc1, loc2):
+def get_distance(city1, city2):
     # Define the base URL for the Distance Matrix API
     base_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
 
     # Define the parameters for the GET request
     params = {
-        "origins": f"{loc1[0]},{loc1[1]}",
-        "destinations": f"{loc2[0]},{loc2[1]}",
+        "origins": city1,
+        "destinations": city2,
         "units": "imperial",
         "key": config['google-maps-api'],
     }
@@ -855,13 +1025,18 @@ def get_distance(loc1, loc2):
     # Convert the response to JSON
     data = response.json()
 
-    # Extract the distance from the JSON response
-    distance = data["rows"][0]["elements"][0]["distance"]["text"]
+    # Make sure to handle cases where the API returns an error or no routes are found
+    if data['status'] == 'OK' and data['rows'][0]['elements'][0]['status'] == 'OK':
+        # Extract the distance from the JSON response
+        distance = data["rows"][0]["elements"][0]["distance"]["text"]
 
-    # Remove " mi" from the end of the distance string and convert it to a float
-    distance = float(distance[:-3])
+        # Remove any text from the end of the distance string, remove any commas and convert it to a float
+        distance = float(distance.split(" ")[0].replace(",", ""))
 
-    return distance
+        return distance
+    else:
+        # if this scenario, then return to add event page and flash error message
+        return 1000
 
 
 @app.route('/events_in_area', methods=['GET'])
@@ -898,17 +1073,18 @@ def get_events_in_area():
     return jsonify([event.to_dict() for event in events_in_area])
 
 
-@app.route('/invitation/create/<account_id>/<event_id>', methods=['GET', 'POST'])
-def create_invitation(account_id, event_id):
+@app.route('/invitation/create/<event_id>', methods=['GET', 'POST'])
+def create_invitation(event_id):
     form = InvitationForm()
-
-    # Fetch the account
-    account = Account.query.get_or_404(account_id)
 
     # Fetch the event
     event = Event.query.get_or_404(event_id)
 
-    contacts = Contact.query.filter_by(AccountId=account.Id).all()
+    # Get the list of contact IDs from the URL parameters or another source
+    contact_ids = request.args.getlist('contact_id')
+
+    # Fetch the contacts
+    contacts = Contact.query.filter(Contact.Id.in_(contact_ids)).all()
     form.contact_id.choices = [(contact.Id, contact.Name) for contact in contacts]
 
     if form.validate_on_submit():
@@ -919,11 +1095,50 @@ def create_invitation(account_id, event_id):
                                 status=InvitationStatus[form.status.data])
         db.session.add(invitation)
         db.session.commit()
-        flash('Invitation created successfully', 'success')
+        flash('Invitation(s) created successfully', 'success')
         return redirect(url_for('invitation_list'))
 
     return render_template('create_invitation.html', title='Create Invitation', form=form, contacts=contacts,
                            event=event)
+
+
+@app.route('/send_invitations', methods=['POST'])
+def send_invitations():
+    data = request.json
+    selected_contacts = data.get('selected_contacts', [])
+
+    # Your logic to send invitations
+    # This could be storing the IDs in a database, sending emails, etc.
+
+    return jsonify({"status": "success"})
+
+
+@app.route('/get_contact_for_invite')
+def get_contact_for_invite():
+    contact_ids = request.args.getlist('contact_ids')
+    # split contact_ids by comma
+    contact_ids = contact_ids[0].split(',')
+    contacts = []
+    for contact_id in contact_ids:
+        contact = Contact.query.get(contact_id)
+        contacts.append(contact)
+
+    contacts_list = [{'Name': contact.Name, 'Id': contact.Id, 'AccountId': contact.AccountId, 'Title': contact.Title} for contact in contacts]
+    return jsonify({"contacts": contacts_list})
+
+
+@app.route('/save_invitations', methods=['POST'])
+def save_invitations():
+    data = request.json
+    selected_contacts = data.get('selected_contacts', [])
+    event_id = data.get('event_id')
+
+    for contact_id in selected_contacts:
+        invitation = Invitation(contact_id=contact_id, event_id=event_id)
+        db.session.add(invitation)
+    db.session.commit()
+
+    return jsonify({"status": "success"})
 
 
 @app.route('/account/<string:account_id>', methods=['GET'])
@@ -936,18 +1151,9 @@ def account_details(account_id):
 
     if prospecting_data:
         # Pass the cached data to the template
-        return render_template('account_details.html', account=account, prospecting_data=prospecting_data)
+        return render_template('account_tooltip.html', account=account, prospecting_data=prospecting_data)
     else:
-        return render_template('account_details.html', account=account)
-
-    # return render_template(
-    #     'prospecting.html',
-    #     account=account,
-    #     overview_section=overview_section,
-    #     challenges_section=challenges_section,
-    #     news_section=news_section,
-    #     recommendation_section=recommendation_section
-    #         )
+        return render_template('account_tooltip.html', account=account)
 
 
 def time_since_last_interaction(last_interaction_timestamp):
@@ -973,8 +1179,8 @@ app.jinja_env.filters['time_since'] = time_since_last_interaction
 
 
 @app.route('/get_interactions', methods=['GET'])
-def get_interactions():
-    account_id = request.args.get('account_id')
+def get_interactions(account_id):
+    # account_id = request.args.get('account_id')
     interactions = Interaction.query.filter_by(account_id=account_id).all()
     interactions_data = [{"type": interaction.interaction_type, "description": interaction.description,
                           "timestamp": interaction.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1006,6 +1212,7 @@ def account(id):
     account = Account.query.filter_by(id=id).first()
     contacts = Contact.query.filter_by(account_id=id).all()
     interactions = Interaction.query.filter_by(account_id=id).all()
+
     return render_template('account.html', account=account, contacts=contacts, interactions=interactions)
 
 
@@ -1327,7 +1534,8 @@ def logACall():
     else:
         return jsonify({"success": False})
 
-@app.route('/create_opp', methods=['GET','POST'])
+
+@app.route('/create_opp', methods=['GET', 'POST'])
 def create_opportunity():
     # Define the endpoint URL for creating a new Opportunity
     url = "https://fakepicasso-dev-ed.develop.my.salesforce.com/services/data/v58.0/sobjects/Opportunity"
@@ -1352,11 +1560,6 @@ def create_opportunity():
         return response.json()  # Returns the ID of the newly created Opportunity
     else:
         return response.text  # Returns the error message
-
-
-
-
-
 
 
 @app.route('/getContacts', methods=['GET'])
@@ -1518,12 +1721,13 @@ def generate_interaction_data():
     descriptions = ['Great call with', 'Follow-up with', 'Introductory call with', 'Closing call with', 'Check-in with']
     account_ids = [account.Id for account in Account.query.all()]
     contact_ids = [contact.Id for contact in Contact.query.all()]
+    inter_type = ['call', 'email', 'meeting']
     for _ in range(num_rows):
         timestamp = fake.date_time_between(start_date='-1y', end_date='now')  # random date in the last year
         description = random.choice(descriptions) + ' ' + fake.name()
 
         row = {
-            'interaction_type': 'call',
+            'interaction_type': inter_type[random.randint(0, 2)],
             'description': description,
             'timestamp': timestamp,
             'account_id': random.choice(account_ids),
@@ -1557,7 +1761,7 @@ def generate_event_data():
     data = []
 
     # Possible event types
-    event_types = ['Conference', 'Webinar', 'Meetup', 'Workshop', 'Seminar']
+    # event_types = [EventType.third_party, EventType.company_hosted]
 
     # Fetch unique BillingCity values from Account model
     billing_cities = list(set(account.BillingCity for account in Account.query.all()))
@@ -1575,7 +1779,7 @@ def generate_event_data():
             'end_time': end_time,
             'created_by': current_user.id,
             'audience': fake.catch_phrase(),
-            'event_type': random.choice(event_types),
+            'event_type': random.choice(list(EventType)).value,
             'cost': fake.random_int(min=0, max=1000),
             'sponsor': fake.company(),
             'expected_attendees': fake.random_int(min=0, max=500),
@@ -1684,6 +1888,130 @@ def add_job_titles():
         db.session.commit()
 
     return jsonify({"success": True})
+
+
+@app.route('/address', methods=['GET', 'POST'])
+def add_account_billing_address():
+    fake = faker.Faker('en_US')
+    top_75_cities = [
+        'New York City', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix',
+        'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
+        'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte',
+        'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington',
+        'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City',
+        'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore',
+        'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa',
+        'Sacramento', 'Atlanta', 'Kansas City', 'Colorado Springs', 'Omaha',
+        'Raleigh', 'Miami', 'Long Beach', 'Virginia Beach', 'Oakland',
+        'Minneapolis', 'Tulsa', 'Arlington', 'Tampa', 'New Orleans',
+        'Wichita', 'Cleveland', 'Bakersfield', 'Aurora', 'Anaheim',
+        'Honolulu', 'Santa Ana', 'Riverside', 'Corpus Christi', 'Lexington',
+        'Stockton', 'Henderson', 'Saint Paul', 'St. Louis', 'Cincinnati',
+        'Pittsburgh', 'Greensboro', 'Anchorage', 'Plano', 'Lincoln',
+        'Orlando', 'Irvine', 'Newark', 'Toledo', 'Durham'
+    ]
+
+    with app.app_context():
+        # Fetch all contacts
+        accounts = Account.query.all()
+        for account in accounts:
+            account.BillingStreet = fake.street_address()
+            account.BillingCity = top_75_cities[random.randint(0, len(top_75_cities) - 1)]
+            account.BillingState = fake.state()
+            account.BillingPostalCode = fake.zipcode()
+            account.BillingCountry = "USA"
+        # Commit the changes to the database
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+def add_account_notes():
+    fake = faker.Faker()
+    with app.app_context():
+        # Fetch all contacts
+        accounts = Account.query.all()
+        for account in accounts:
+            account.Notes = fake.paragraph(nb_sentences=5)
+        # Commit the changes to the database
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+def add_account_industry():
+    fake = faker.Faker()
+    with app.app_context():
+        # Fetch all contacts
+        accounts = Account.query.all()
+        industry_list = [
+            'Software Development',
+            'Information Technology Services',
+            'Semiconductor Manufacturing',
+            'E-commerce',
+            'Cybersecurity',
+            'Cloud Computing',
+            'Artificial Intelligence and Machine Learning',
+            'Telecommunications',
+            'Data Analytics',
+            'Internet of Things (IoT)',
+            'Healthcare',
+            'Finance',
+            'Manufacturing',
+            'Construction',
+            'Energy (Oil & Gas)',
+            'Renewable Energy',
+            'Automotive',
+            'Retail',
+            'Education',
+            'Agriculture',
+            'Real Estate',
+            'Transportation',
+            'Food and Beverage',
+            'Tourism and Hospitality',
+            'Media and Entertainment',
+            'Pharmaceuticals',
+            'Logistics',
+            'Consulting',
+            'Legal Services',
+            'Environmental Services'
+        ]
+
+        for account in accounts:
+            account.Industry = industry_list[random.randint(0, len(industry_list) - 1)]
+            account.NumberOfEmployees = random.randint(1, 10000)
+        # Commit the changes to the database
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+# def add_10_opps():
+#     fake = faker.Faker()
+#     with app.app_context():
+#         # Fetch all contacts
+#         accounts = Account.query.all()
+#         for account in accounts:
+#             for _ in range(10):
+#                 opp = Opportunity(
+#                     Name=fake.catch_phrase(),
+#                     AccountId=account.Id,
+#                     StageName=random.choice(['Prospecting', 'Qualification', 'Needs Analysis', 'Value Proposition',
+#                                              'Id. Decision Makers', 'Perception Analysis', 'Proposal/Price Quote',
+#                                              'Negotiation/Review', 'Closed Won', 'Closed Lost']),
+#                     CloseDate=fake.date_time_between(start_date='-1y', end_date='now'),
+#                     Amount=fake.random_int(min=0, max=1000000),
+#                     Probability=fake.random_int(min=0, max=100),
+#                     CreatedDate=datetime.now(),
+#                     LastModifiedDate=datetime.now(),
+#                     LastModifiedById=current_user.id,
+#                     SystemModstamp=datetime.now()
+#                 )
+#                 db.session.add(opp)
+#         # Commit the changes to the database
+#         db.session.commit()
+#
+#     return jsonify({"success": True})
 
 
 @app.route('/news', methods=['GET', 'POST'])
@@ -1983,13 +2311,15 @@ def get_closed_won_opps_total(days_ago):
 
     return total
 
+
 @app.route('/tier1_interactions', methods=['GET', 'POST'])
 def tier_one_interactions(timeframe=365):
     with app.app_context():
         # list out all interactions with an account.Score > 70 and interaction happened with timeframe days ago
         # interactions = Interaction.query.join(Account).filter(Account.Score > 74).all()
-        interactions = Interaction.query.join(Account).filter(Interaction.timestamp > (datetime.now() - timedelta(days=timeframe)),
-                                                Account.Score > 70).all()
+        interactions = Interaction.query.join(Account).filter(
+            Interaction.timestamp > (datetime.now() - timedelta(days=timeframe)),
+            Account.Score > 70).all()
         return len(interactions)
 
 
@@ -2006,16 +2336,18 @@ def get_open_opps_value(days_ago=365):
 
     return total
 
+
 @app.route('/ask_sql', methods=['GET', 'POST'])
 def language_sql():
     from langchain.utilities import SQLDatabase
-    from langchain.llms import OpenAI
+    from langchain.chat_models import ChatOpenAI
     from langchain_experimental.sql import SQLDatabaseChain
 
     # get input from the request
-    query = request.args.get('query', default='How many accounts have a score over 50?', type=str)
+    query = request.args.get('query', default='How many accounts have a score over 50 total?', type=str)
     db = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
-    llm = OpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", verbose=True, openai_api_key=config['openai_api-key'])
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", verbose=True,
+                     openai_api_key=config['openai_api-key'])
     db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
 
     answer = db_chain.run(query)
@@ -2053,6 +2385,9 @@ def data():
     events = main.generate_event_data()
     interactions = main.generate_interaction_data()
     jobs = main.add_job_titles()
+    address = main.add_account_billing_address()
+    industry = main.add_account_industry()
+    notes = main.add_account_notes()
 
     rank = main.scheduled_rank_companies()
     # prospect = main.prospecting()

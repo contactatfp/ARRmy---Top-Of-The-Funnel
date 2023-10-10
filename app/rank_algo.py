@@ -40,6 +40,14 @@ def rank_companies():
     # Scoring for interactions
     for account in all_accounts:
         interactions = Interaction.query.filter_by(account_id=account.Id).all()
+        if account is None:
+            continue
+        if account.NumberOfEmployees > 5000:
+            scores[account.Id] += 10
+        elif 5000 >= account.NumberOfEmployees > 1000:
+            scores[account.Id] += 5
+        elif 1000 >= account.NumberOfEmployees > 500:
+            scores[account.Id] += 2
         if scores[account.Id] is None and interactions is None:
             scores[account.Id] = 0
         for interaction in interactions:
@@ -55,6 +63,7 @@ def rank_companies():
             acc_id = opp["node"]["Account"]["Id"]
             close_date = datetime.strptime(opp["node"]["CloseDate"]["value"], '%Y-%m-%d')
             days_until_close = (close_date - datetime.now()).days
+
             if 180 >= days_until_close > 0:
                 scores[acc_id] += 20
             elif days_until_close < 0:

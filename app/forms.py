@@ -4,6 +4,7 @@ from wtforms import StringField, PasswordField, SubmitField, TextAreaField, Date
 from wtforms.validators import DataRequired, Length, EqualTo, Optional
 
 
+
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -31,8 +32,19 @@ class EventForm(FlaskForm):
     location = StringField('Location', validators=[DataRequired()])
     start_time = DateTimeField('Start Time', validators=[DataRequired()])
     end_time = DateTimeField('End Time', validators=[DataRequired()])
-    audience = SelectField('Audience', choices=[('1', 'ALL'), ('2', 'MANAGER+'), ('3', 'VP+'),('4', 'C-SUITE')])
-    event_type = StringField('Event Type', validators=[Optional()])
+    audience = SelectField('Audience', choices=[('1', 'ALL'), ('2', 'MANAGER+'), ('3', 'VP+'), ('4', 'C-SUITE')])
+
+    # New Fields
+    event_type = SelectField('Event Type', choices=[('company_hosted', 'Company Hosted'), ('third_party', '3rd Party')], validators=[DataRequired()])
+    responsibility = SelectField('Responsibility for Attendance', choices=[('drive_attendance', 'Drive Attendance'), ('not_responsible', 'Not Responsible')], validators=[DataRequired()])
+    registration_link = StringField('Registration Link', validators=[Optional()])
+    city = StringField('City', validators=[DataRequired()])
+    state = StringField('State', validators=[DataRequired()])
+    industry = StringField('Industry', validators=[DataRequired()])
+    audience_titles = StringField('Audience Titles', validators=[DataRequired()])  # Comma-separated or use checkboxes
+
+
+    # Existing Fields
     cost = FloatField('Cost', validators=[Optional()])
     sponsor = StringField('Sponsor', validators=[Optional()])
     expected_attendees = IntegerField('Expected Attendees', validators=[Optional()])

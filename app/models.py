@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-
+import json
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -11,7 +11,7 @@ db = SQLAlchemy()
 def init_db(app):
     db.init_app(app)
     with app.app_context():
-        db.drop_all()
+        # db.drop_all()
         db.create_all()
 
 
@@ -102,7 +102,6 @@ class Account(db.Model):
     IntegrationStatus = db.Column(db.Enum('integration', 'neutral', 'competitor', name='integration_status_enum'))
     SubIndustry = db.Column(db.String)
 
-
     def __repr__(self):
         return f'<Account {self.Name}>'
 
@@ -190,6 +189,16 @@ class Alert(db.Model):
         return f'<Alert {self.alert_type}: {self.message}>'
 
 
+class EventType(enum.Enum):
+    company_hosted = "company_hosted"
+    third_party = "third_party"
+
+
+class AttendanceResponsibility(enum.Enum):
+    drive_attendance = "Drive Attendance"
+    not_responsible = "Not Responsible"
+
+
 # New Model for Event
 class Event(db.Model):
     __tablename__ = 'event'
@@ -197,15 +206,21 @@ class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
-    # location = db.Column(db.String)
-    location = db.relationship('Address', backref='event', uselist=False)
+
+    # location = db.relationship('Address', backref='event', uselist=False)
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.String, db.ForeignKey('users.id'))
-    audience = db.Column(db.String)
+    audience = db.Column(db.Integer)
+    event_type = db.Column(db.Enum(EventType))
+    responsibility = db.Column(db.Enum(AttendanceResponsibility))
+    registration_link = db.Column(db.String)
+    street_address = db.Column(db.String)
+    city = db.Column(db.String)
+    state = db.Column(db.String)
 
-    event_type = db.Column(db.String)
+    industry = db.Column(db.String)
     cost = db.Column(db.Float)
     sponsor = db.Column(db.String)
     expected_attendees = db.Column(db.Integer)
@@ -236,7 +251,6 @@ class InteractionType(enum.Enum):
 
     def to_json(self):
         return self.value
-
 
 
 class Interaction(db.Model):
@@ -332,7 +346,6 @@ class Contact(db.Model):
     IsPartnerRep = db.Column(db.Boolean, default=False)
     LinkedInUrl = db.Column(db.String)
 
-
     def __repr__(self):
         return f'<Contact {self.Name}>'
 
@@ -344,3 +357,60 @@ class AccountActivity(db.Model):
     ActivityType = db.Column(db.Enum('meeting', 'call', 'email', name='activity_type_enum'))
     Date = db.Column(db.DateTime, default=datetime.utcnow)
     Details = db.Column(db.Text)
+
+
+# Association table for many-to-many relationship between CustomerStory and Account
+story_account_association = db.Table('story_account_association',
+                                     db.Column('story_id', db.Integer, db.ForeignKey('customer_story.id')),
+                                     db.Column('account_id', db.String, db.ForeignKey('account.Id')),
+                                     db.Column('icp_score', db.Integer)  # ICP score ranging from 0-5
+                                     )
+
+
+class CustomerStory(db.Model):
+    __tablename__ = 'customer_story'
+
+    id = db.Column(db.Integer, primary_key=True)
+    customer_name = db.Column(db.String)
+    champion_title = db.Column(db.String)
+    location = db.Column(db.String)
+    industry = db.Column(db.String)
+    company_size = db.Column(db.Integer)
+    technologies = db.Column(db.String)  # Assuming a comma-separated list of known technologies
+    products_purchased = db.Column(db.String)  # Assuming a comma-separated list of products/use cases
+
+    # Defining many-to-many relationship with Account
+    accounts = db.relationship('Account', secondary=story_account_association, backref='customer_stories')
+
+    def __repr__(self):
+        return f'<CustomerStory {self.customer_name}>'
+
+
+# New Model for FeedItem
+class FeedItemType(enum.Enum):
+    interaction_summary = "Interaction Summary"
+    alert = "Alert"
+    # add other types of feed items as needed
+
+
+class FeedItem(db.Model):
+    __tablename__ = 'feed_item'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'))  # foreign key to User table
+    feed_item_type = db.Column(db.Enum(FeedItemType))
+    content = db.Column(db.String)  # Content of the feed item
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('feed_items', lazy=True))
+    alert_contacts = db.Column(db.Text)  # New field to store contact IDs
+
+
+    def set_alert_contacts(self, contacts):
+        self.alert_contacts = json.dumps([contact.Id for contact in contacts])
+
+    def get_alert_contacts(self):
+        return json.loads(self.alert_contacts) if self.alert_contacts else []
+
+    def __repr__(self):
+        return f'<FeedItem {self.id} for User {self.user_id}>'

@@ -96,6 +96,11 @@
     /*box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);    !* adds a subtle shadow *!*/
     text-align: center;        /* ensures text is centered */
     padding: 5px;              /* provides some space around the text */
+  /*  create a fixed height so that any extra text inside gets trimmed on display*/
+    max-height: 28px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .notes-cell .paragraph-small.color-neutral-100:hover {
@@ -174,6 +179,26 @@
     font-weight: bold;
   }
 
+
+  .w-dropdown-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+  }
+
+  .show-dropdown {
+    display: block;
+  }
+
+  .recommendation-card, .event-card, .alert-card, .meeting-card {
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+  }
 
 
 
@@ -272,7 +297,7 @@
                     </div>
                   </div>
                   <div class="sql-cell">
-                    <div class="paragraph-small color-neutral-100" id="openSqlModal">How many accounts have a score over 50?</div>
+                    <div class="paragraph-small color-neutral-100" id="openSqlModal">How many accounts have a score over 50 total?</div>
                   </div>
 
                 </div>
@@ -330,20 +355,6 @@
                 <div>
                   <h2 class="display-4">Dashboard</h2>
                   <div data-hover="true" data-delay="0" class="mg-sides-0 position-relative---z-index-1 w-dropdown">
-<!--                    <div class="small-dropdown-toggle w-dropdown-toggle">-->
-<!--                      <div class="flex align-center gap-column-4px">-->
-<!--                        <div class="dashdark-custom-icon line-height-1em"></div>-->
-<!--                        <div class="text-50 medium">Select date</div>-->
-<!--                      </div>-->
-<!--                      <div class="line-rounded-icon card-dropdown-arrow"></div>-->
-<!--                    </div>-->
-<!--                    <nav class="small-dropdown-list w-dropdown-list">-->
-<!--                      <div class="small-dropdown-links-container">-->
-<!--                        <a href="#" class="small-dropdown-link w-dropdown-link">Jan 2024 - Dec 2024</a>-->
-<!--                        <a href="#" class="small-dropdown-link w-dropdown-link">Jan 2023 - Dec 2023</a>-->
-<!--                        <a href="#" class="small-dropdown-link w-dropdown-link">Jan 2022 - Dec 2022</a>-->
-<!--                      </div>-->
-<!--                    </nav>-->
                   </div>
                 </div>
                 <div class="buttons-row">
@@ -366,10 +377,13 @@
                 <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Accounts</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Opps</button>
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Co-Sell</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false">Events</button>
+                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false">Feed</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="marketing-tab" data-bs-toggle="tab" data-bs-target="#marketing" type="button" role="tab" aria-controls="marketing" aria-selected="false">Marketing</button>
               </li>
             </ul>
 
@@ -410,7 +424,7 @@
                                 <th>
                                   <div class="flex align-center gap-column-6px">
                                     <img src="../static/img/order-table-header-icon-dashdark-webflow-template.svg" alt="">
-                                    <div class="text-50 semibold color-neutral-100">Account Name</div>
+                                    <div class="text-50 semibold color-neutral-100" title="Lorem ipsum dolor sit amet, consectetur adipiscing elit.">Account Name</div>
                                   </div>
                                 </th>
                                 <!-- COLUMN 2 HEADER -->
@@ -418,6 +432,13 @@
                                   <div class="flex align-center gap-column-6px">
                                     <img src="../static/img/date-table-header-icon-dashdark-webflow-template.svg" alt="">
                                     <div class="text-50 semibold color-neutral-100">Score</div>
+                                  </div>
+                                </th>
+                                <!-- COLUMN 2B HEADER -->
+                                <th>
+                                  <div class="flex align-center gap-column-6px">
+                                    <img src="../static/img/date-table-header-icon-dashdark-webflow-template.svg" alt="">
+                                    <div class="text-50 semibold color-neutral-100">Tier</div>
                                   </div>
                                 </th>
                                 <!-- COLUMN 3 HEADER -->
@@ -460,6 +481,13 @@
                                     <div class="text-50 semibold color-neutral-100">Last Interaction</div>
                                   </div>
                                 </th>
+                                <!-- COLUMN 9 HEADER -->
+                                <th>
+                                  <div class="flex align-center gap-column-6px">
+                                    <div class="text-50 semibold color-neutral-100">TAM</div>
+                                  </div>
+                                </th>
+
                               </tr>
                               </thead>
                               <tbody>
@@ -468,15 +496,64 @@
                                 <!-- COLUMN 1 -->
                                 <td>
                                   <div class="flex align-center">
-                                    <div class="paragraph-small color-neutral-100">{{ account.Name }}</div>
+                                    <div class="paragraph-small color-neutral-100 account-name-tooltip" data-bs-toggle="tooltip" data-account-id="{{ account.Id }}" data-bs-placement="right" title="Loading...">
+                                      {{ account.Name }}
+                                    </div>
                                   </div>
                                 </td>
                                 <!-- COLUMN 2 -->
                                 <td>
                                   <div class="flex align-center">
-                                    <div class="paragraph-small color-neutral-100">{{ account.Score }}</div>
+                                    <div class="paragraph-small color-neutral-100 account-score-tooltip" data-bs-toggle="tooltip" data-account-id="{{ account.Id }}" data-bs-placement="right" title="Loading...">
+                                      {{ account.Score }}
+                                    </div>
                                   </div>
                                 </td>
+
+<!--                                <td>-->
+<!--                                  <div class="account-score-tooltip" data-bs-toggle="tooltip" title='<h2>{{account.Name}} Score</h2><hr><ul><li>Score: {{ account.Score }} </li><li>Tier: {{ tier1 }}</li><li>Sed do eiusmod tempor incididunt.</li></ul><button>Insights</button>' class="flex align-center">-->
+<!--                                    <div class="paragraph-small color-neutral-100">{{ account.Score }}</div>-->
+<!--                                  </div>-->
+<!--                                </td>-->
+
+                                <!-- COLUMN 2B -->
+                                <td>
+                                  <div>
+                                    <div class="dropdown-container" style="position: relative;">
+                                      <div data-hover="true" data-delay="0" class="mg-sides-0 position-relative---z-index-1 w-dropdown">
+                                        <div class="small-dropdown-toggle w-dropdown-toggle" style="font-size: 12px; height: 28px;">
+                                          <div class="flex align-center gap-column-4px">
+                                            <div class="dashlight-custom-icon line-height-1em"></div>
+                                            <div class="text-65 medium" style="text-align: center">
+                                              {% if account.Rank %}
+                                              {{ account.Rank }}
+                                              {% else %}
+                                              Select Tier
+                                              {% endif %}
+                                            </div>
+                                          </div>
+                                          <div class="line-rounded-icon card-dropdown-arrow"></div>
+                                        </div>
+
+                                        <nav class="w-dropdown-list">
+                                          <div class="small-dropdown-links-container" style="background: white; border: white;">
+                                            <form method="post">
+                                              <button class="small-dropdown-link w-dropdown-link" data-account-id="{{ account.Id }}" name="tier" value="1" style="color: black; font-size: 12px;">1</button>
+                                              <button class="small-dropdown-link w-dropdown-link" data-account-id="{{ account.Id }}" name="tier" value="2" style="color: black; font-size: 12px;">2</button>
+                                              <button class="small-dropdown-link w-dropdown-link" data-account-id="{{ account.Id }}" name="tier" value="3" style="color: black; font-size: 12px;">3</button>
+                                              <button class="small-dropdown-link w-dropdown-link" data-account-id="{{ account.Id }}" name="tier" value="4" style="color: black; font-size: 12px;">4</button>
+                                              <button class="small-dropdown-link w-dropdown-link" data-account-id="{{ account.Id }}" name="tier" value="Customer" style="color: black; font-size: 12px;">Customer</button>
+                                            </form>
+                                          </div>
+                                        </nav>
+                                      </div>
+                                    </div>
+
+                                  </div>
+
+                                </td>
+
+
                                 <!-- COLUMN 3 -->
                                 <td>
                                   <div class="flex align-center">
@@ -492,7 +569,14 @@
                                 <!-- COLUMN 5 -->
                                 <td class="notes-cell">
                                   <div class="flex align-center">
-                                    <div class="paragraph-small color-neutral-100" data-account-id="{{ account.Id }}">{{ account.Notes }}</div>
+                                    <div class="paragraph-small color-neutral-100 notes-tooltip"
+                                         data-account-id="{{ account.Id }}"
+                                         data-bs-toggle="tooltip"
+                                         data-bs-placement="top"
+                                         title="{{ account.Notes }}">
+                                      {{ account.Notes }}
+                                    </div>
+
                                   </div>
                                 </td>
 
@@ -518,14 +602,35 @@
                                 <td>
                                   <div class="flex align-center">
                                     <div class="paragraph-small color-neutral-100">
-                                      {% set last_interaction = get_last_interaction(account.Id) %}
-                                      {% if last_interaction != None %}
-                                      <a href="{{ url_for('interaction_details', interaction_id=last_interaction.id) }}">{{ last_interaction.timestamp|time_since }}</a></div>
+                                      {% set last_call = get_last_call(account.Id) %}
+                                      {% set last_meeting = get_last_meeting(account.Id) %}
+                                      {% set last_opp = get_last_opp(account.Id) %}
+
+                                      {% if last_call or last_meeting or last_opp %}
+                                      📞{{ last_call if last_call else 'N/A' }}/📧{{ last_meeting if last_meeting else 'N/A' }}/💰{{ last_opp if last_opp else 'N/A' }}
+                                      {% else %}
+                                      :(
+                                      {% endif %}
+                                    </div>
                                   </div>
-                                  {% else %}
-                                  :(
-                                  {% endif %}
                                 </td>
+                                <!-- COLUMN 9 -->
+                                <td>
+                                  <div class="flex align-center">
+                                    <div class="paragraph-small color-neutral-100">
+                                      {% if account.NumberOfEmployees is none %}
+                                      $0
+                                      {% else %}
+                                      {% set tam = account.NumberOfEmployees * 1000 %}
+                                      ${{ "{:,.0f}".format(tam) }}
+                                      {% endif %}
+                                    </div>
+                                  </div>
+                                </td>
+
+
+
+
                               </tr>
                               {% endfor %}
                               </tbody>
@@ -559,11 +664,49 @@
                 </div>
               </div>
 
+              <!-- Invitation Modal -->
+              <div class="modal fade" id="invitationModal" tabindex="-1" aria-labelledby="invitationModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="invitationModalLabel">Send Invitations</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="invitationModalBody">
+                      <!-- Cards of contacts will be dynamically added here -->
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      <button type="button" id="sendInvitations" class="btn btn-primary">Send Invitations</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
 
               <!--              TAB 2-->
               <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">2</div>
+
               <!--              TAB 3-->
-              <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">3</div>
+              <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+                <div id="feedContainer">
+                  <!-- Feed items will be appended here -->
+                </div>
+                <div id="loadingIndicator" style="display: none;">
+<!--                  Loading more items...-->
+                </div>
+              </div>
+
+              <!-- TAB 4 Marketing Tab -->
+              <div class="tab-pane fade" id="marketing" role="tabpanel" aria-labelledby="marketing-tab">
+                <br>
+                <!-- Anchor styled as a button -->
+                <a href="{{ url_for('events_page') }}" class="btn btn-primary">Go to Events Page</a>
+                <!-- Your marketing content will go here -->
+                <p>Marketing content goes here.</p>
+              </div>
+
             </div>
 
           </div>
@@ -598,6 +741,7 @@
 <!--  <div class="loading-bar-wrapper">-->
 <!--    <div class="loading-bar"></div>-->
 <!--  </div>-->
+
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
@@ -656,6 +800,65 @@
 
 
   </script>
+  <script>
+    <!--    tooltips-->
+    $(document).ready(function() {
+      // Initialize tooltip for Notes
+      var notesTooltipList = [].slice.call(document.querySelectorAll('.notes-tooltip'));
+      var notesTooltipInstances = notesTooltipList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+          html: true
+        });
+      });
+
+      // Initialize tooltip for Account Names and fetch data on hover
+      var accountNameTooltipList = [].slice.call(document.querySelectorAll('.account-name-tooltip'));
+      var accountNameTooltipInstances = accountNameTooltipList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+          html: true
+        });
+      });
+
+      var accountScoreTooltipList = [].slice.call(document.querySelectorAll('.account-score-tooltip'));
+      var accountScoreTooltipInstances = accountScoreTooltipList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+          html: true
+        });
+      });
+
+
+      // var accountScoreTooltipList = [].slice.call(document.querySelectorAll('.account-score-tooltip'));
+      // var accountScoreTooltipInstances = accountScoreTooltipList.map(function (tooltipTriggerEl) {
+      //   return new bootstrap.Tooltip(tooltipTriggerEl, {
+      //     html: true
+      //   });
+      // });
+
+      $('.account-name-tooltip').on('mouseenter', function() {
+        var accountId = $(this).attr('data-account-id');
+        var currentElement = $(this);
+
+        // Fetch account details using AJAX
+        $.get(`/account/${accountId}`, function(data) {
+          currentElement.attr('data-bs-original-title', data);
+          currentElement.tooltip('update');
+        });
+      });
+
+      $('.account-score-tooltip').on('mouseenter', function() {
+        var accountId = $(this).attr('data-account-id');
+        var currentElement = $(this);
+
+        // Fetch account details using AJAX
+        $.get(`/tier/${accountId}`, function(data) {
+          currentElement.attr('data-bs-original-title', data);
+          currentElement.tooltip('update');
+        });
+      });
+
+    });
+  </script>
+
   <script>
     // Function to sort table
     function sortTable(table, columnIndex, ascending = true) {
@@ -762,10 +965,236 @@
               });
     });
 
+    $(document).ready(function() {
+      $('.small-dropdown-link').on('click', function(event) {
+        event.preventDefault();
+        var accountId = $(this).attr('data-account-id');
+        let tierValue = $(this).attr('value');
 
+        // Update the dropdown toggle text to the selected tier immediately
+        $(event.target).closest('.dropdown-container').find('.small-dropdown-toggle .text-65.medium').text(tierValue);
+
+        $.post(`/update-tier/${accountId}`, {tier: tierValue}, function(response) {
+          // If you want to handle the response from the server, you can do it here
+          // For example:
+          // if (!response.success) {
+          //     alert('Error updating tier: ' + response.error);
+          // }
+        });
+
+        return false; // Ensure the event doesn't propagate further
+      });
+    });
   </script>
 
+  <script>
+    let currentPage = 1;
+    const feedContainer = document.getElementById('feedContainer');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    let isLoading = false;
+    let hasMoreData = true;
+    var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'));
 
+    function loadFeedItems() {
+      if(isLoading) return;
+      isLoading = true;
+      loadingIndicator.style.display = 'block';
+
+      fetch(`/feed?page=${currentPage}`)
+              .then(response => response.json())
+              .then(data => {
+                appendDataToFeed(data);
+
+                if (!data.recommendations.length && !data.events.length && !data.alerts.length && !data.meetings.length) {
+                  hasMoreData = false;
+                }
+
+                currentPage++;
+                isLoading = false;
+                loadingIndicator.style.display = 'none';
+              });
+    }
+
+    function appendDataToFeed(data) {
+      const prependItems = (items, className) => {
+        items.forEach(item => {
+          const card = document.createElement('div');
+
+          if (className === 'alert-card') {
+            card.className = `card ${className}`;
+
+            if (item.alert_contacts) {
+              card.setAttribute('data-contact-ids', item.alert_contacts.join(','));
+            }
+
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = item.text;
+
+            cardBody.appendChild(contentDiv);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary mt-2';
+            btn.innerText = 'Invite Local Contacts';
+
+            btn.addEventListener('click', function() {
+              // var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'), {
+              //   keyboard: true
+              // });
+              invitationModal.show();
+
+              var contactIds = card.getAttribute("data-contact-ids");
+
+              if (contactIds) {
+                contactIds = contactIds.split(',');
+
+                fetch(`/get_contact_for_invite?contact_ids=${contactIds.join(',')}`)
+                        .then(response => {
+                          if (!response.ok) {
+                            return Promise.reject('Fetch failed; it is not a 2xx response');
+                          }
+                          return response.json();
+                        })
+                        .then(data => {
+                          var invitationModalBody = document.getElementById("invitationModalBody");
+                          invitationModalBody.innerHTML = '';
+
+                          let contactPromises = data.contacts.map(contact => {
+
+
+                            return fetch(`/get_account_name?account_id=${contact.AccountId}`)
+                                    .then(response => response.json())
+                                    .then(accountData => {
+                                      var contactCard = document.createElement("div");
+                                      contactCard.className = "card";
+
+                                      var cardBody = document.createElement("div");
+                                      cardBody.className = "card-body";
+
+                                      var cardText = document.createElement("p");
+                                      cardText.className = "card-text";
+                                      cardText.innerText = `Name: ${contact.Name}`;
+
+                                      var accountText = document.createElement("p");
+                                      accountText.className = "card-text";
+                                      accountText.innerText = `Account: ${accountData.AccountName}`;
+
+                                      var jobTitleText = document.createElement("p");
+                                      jobTitleText.className = "card-text";
+                                      jobTitleText.innerText = `Job Title: ${contact.Title}`;
+
+
+                                      var checkbox = document.createElement("input");
+                                      checkbox.type = "checkbox";
+                                      checkbox.className = "form-check-input";
+                                      checkbox.value = contact.Id;
+
+                                      cardBody.appendChild(cardText);
+                                      cardBody.appendChild(accountText);
+                                      cardBody.appendChild(jobTitleText);
+                                      cardBody.appendChild(checkbox);
+
+                                      contactCard.appendChild(cardBody);
+
+                                      invitationModalBody.appendChild(contactCard);
+                                    })
+                                    .catch(error => console.error('Error fetching account name:', error));
+                          });
+
+                          return Promise.all(contactPromises);
+                        })
+                        .catch(error => {
+                          console.error('Fetch error:', error);
+                        });
+
+                // invitationModal.show();
+              }
+            });
+
+            cardBody.appendChild(btn);
+            card.appendChild(cardBody);
+          } else {
+            card.className = className;
+            card.innerText = item.text;
+          }
+
+          feedContainer.insertBefore(card, feedContainer.firstChild);
+        });
+      };
+
+      prependItems(data.alerts, 'alert-card');
+      prependItems(data.meetings, 'meeting-card');
+    }
+
+    // Initial load
+    loadFeedItems();
+
+    // Listen for scroll events
+    window.onscroll = function() {
+      if (hasMoreData && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+        loadFeedItems();
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Debugging
+      console.log("DOMContentLoaded event fired.");
+
+      // var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'));
+
+      document.getElementById("sendInvitations").addEventListener("click", function() {
+        // Debugging
+        console.log("sendInvitations button clicked.");
+
+        let selectedContacts = Array.from(document.querySelectorAll("input[type='checkbox']:checked")).map(checkbox => checkbox.value);
+
+        // Debugging
+        console.log("Selected contacts:", selectedContacts);
+
+        fetch("/save_invitations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            "selected_contacts": selectedContacts
+          })
+
+        })
+                .then(response => {
+                  // Debugging
+                  console.log("Received response from server:", response);
+
+                  return response.json();
+                })
+                .then(data => {
+                  // Debugging
+                  console.log("Received JSON data:", data);
+
+                  if(data.status === "success") {
+                    invitationModal.hide();
+                    console.log("Modal should be hidden now.");  // Debugging line
+
+                  } else {
+                    console.error("Error sending invitations:", data.message);
+                    console.log("Modal should be hidden now, but it's not.");  // Debugging line
+
+                  }
+                })
+                .catch(error => {
+                  console.error("Error:", error);
+                });
+      });
+
+    });
+
+  </script>
+  <script>
+
+
+  </script>
 
 
 

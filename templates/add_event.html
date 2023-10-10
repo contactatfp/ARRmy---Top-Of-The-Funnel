@@ -90,6 +90,31 @@
                         {{ form.marketing_channel(class="form-control", data_bs_toggle="tooltip", title="Enter the marketing channel for the event.") }}
                     </div>
 
+                    <div class="mb-3">
+                        {{ form.registration_link.label(class="form-label") }}
+                        {{ form.registration_link(class="form-control", data_bs_toggle="tooltip", title="Enter the registration link for the event.") }}
+                    </div>
+
+<!--                    <div class="mb-3">-->
+<!--                        {{ form.city.label(class="form-label") }}-->
+<!--                        {{ form.city(class="form-control", data_bs_toggle="tooltip", title="Enter the city where the event will be held.") }}-->
+<!--                    </div>-->
+
+<!--                    <div class="mb-3">-->
+<!--                        {{ form.state.label(class="form-label") }}-->
+<!--                        {{ form.state(class="form-control", data_bs_toggle="tooltip", title="Enter the state where the event will be held.") }}-->
+<!--                    </div>-->
+
+                    <div class="mb-3">
+                        {{ form.industry.label(class="form-label") }}
+                        {{ form.industry(class="form-control", data_bs_toggle="tooltip", title="Enter the industry target for the event.") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.audience_titles.label(class="form-label") }}
+                        {{ form.audience_titles(class="form-control", data_bs_toggle="tooltip", title="Enter the titles of the target audience for the event.") }}
+                    </div>
+
                     <!-- Add gamification -->
                     <!-- Add visual cues and microinteractions -->
                     <input type="submit" id="add-event-form" value="Add Event" class="btn btn-primary">
@@ -98,10 +123,12 @@
         </div>
     </div>
     <script>
+        import AOS from "../static/js/webflow_old";
+
         AOS.init();
     </script>
     <script async
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALvzGan08futWJALi6bUMabkiQ69p5AO8&libraries=places&callback=initializeAutocomplete">
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAot_mWS8gsnQqx3lNeAu6VOk8EwrPLVU0&libraries=places&callback=initializeAutocomplete">
     </script>
 
     <!-- Initialize autocomplete for the 'location' input field -->
@@ -109,7 +136,7 @@
         function initializeAutocomplete() {
             var input = document.getElementById('location');
             var autocomplete = new google.maps.places.Autocomplete(input, {
-                types: 'address'
+                types: ['address']
             });
         }
 
