@@ -993,7 +993,7 @@
     const loadingIndicator = document.getElementById('loadingIndicator');
     let isLoading = false;
     let hasMoreData = true;
-    var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'));
+    // var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'));
 
     function loadFeedItems() {
       if(isLoading) return;
@@ -1040,9 +1040,9 @@
             btn.innerText = 'Invite Local Contacts';
 
             btn.addEventListener('click', function() {
-              // var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'), {
-              //   keyboard: true
-              // });
+              var invitationModal = new bootstrap.Modal(document.getElementById('invitationModal'), {
+                keyboard: true
+              });
               invitationModal.show();
 
               var contactIds = card.getAttribute("data-contact-ids");
@@ -1117,7 +1117,8 @@
             card.appendChild(cardBody);
           } else {
             card.className = className;
-            card.innerText = item.text;
+            // card.innerHTML allows it to render as HTML
+            card.innerHTML = item.text;
           }
 
           feedContainer.insertBefore(card, feedContainer.firstChild);

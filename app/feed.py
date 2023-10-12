@@ -1,13 +1,15 @@
 from flask import Blueprint, jsonify, render_template, request
 from flask_login import current_user
-import json
-from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
 
+from datetime import datetime, timedelta
+from flask import Markup
 
 feed_blueprint = Blueprint('feed', __name__, template_folder='templates')
 
-with open('config.json') as f:
-    config = json.load(f)
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 
 # Mock functions to fetch data. You can replace them with real database calls.
@@ -44,8 +46,6 @@ def fetch_alerts(limit=10, offset=0):
     return beautified_alerts
 
 
-
-
 def fetch_meetings(limit=10, offset=0):
     # Replace with your actual database calls
     return [{'text': 'Sample Meeting'}] * limit
@@ -65,25 +65,7 @@ def interaction_previous_week(limit=10, offset=0):
 
     if existing_summary:
         return [{'text': existing_summary.content}] * 1
-    from langchain.chat_models import ChatOpenAI
-    from langchain.utilities import SQLDatabase
-    from langchain_experimental.sql import SQLDatabaseChain
-    db2 = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", verbose=True, openai_api_key=config['openai_api-key'])
-    db_chain = SQLDatabaseChain.from_llm(llm, db2, verbose=True)
-
-    summary = db_chain.run(f'''
-    How many interactions were timestamped within the last week? The format should be as follows:
-    
-    Week of <date> to <date>
-    Calls: <number of calls>
-    Emails: <number of emails>
-    Meetings: <number of meetings>
-    
-    Action Items: <summary of any action items from the interactions>
-    
-    If there are not any Interactions for the week then return "No Interactions Last Week"
-    ''')
+    summary = reg_sql()
 
     # Create new FeedItem object
     new_feed_item = FeedItem()
@@ -98,8 +80,69 @@ def interaction_previous_week(limit=10, offset=0):
     return [{'text': summary}] * 1
 
 
+def reg_sql():
+    from app.models import db
+    from sqlalchemy import text
+
+    sql_query = text('''
+    SELECT 
+        "interaction_type", 
+        COUNT("interaction_type") as "Count", 
+        GROUP_CONCAT("description", '; ') as "ActionItems" 
+    FROM 
+        interaction 
+    WHERE 
+        "timestamp" BETWEEN datetime('now', '-7 days') AND datetime('now') 
+    GROUP BY 
+        "interaction_type"
+    '''.strip())
+
+    # Get a connection and execute the query
+    connection = db.engine.connect()
+    result = connection.execute(sql_query)
+    connection.close()
+
+    # Convert the result into a list of dictionaries for easier manipulation
+    keys = result.keys()
+    summaries = [dict(zip(keys, row)) for row in result]
+    action_items_list = []
+
+    # Loop through each summary to populate the counts and action items
+    for summary in summaries:
+        if summary['interaction_type'] == 'call':
+            num_calls = summary['Count']
+            action_items_list.append(f"<li>From Calls: {summary['ActionItems']}</li>")
+        elif summary['interaction_type'] == 'email':
+            num_emails = summary['Count']
+            action_items_list.append(f"<li>From Emails: {summary['ActionItems']}</li>")
+        elif summary['interaction_type'] == 'meeting':
+            num_meetings = summary['Count']
+            action_items_list.append(f"<li>From Meetings: {summary['ActionItems']}</li>")
+
+    # Get the date range for the last week
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+
+    # Format the date range and action items
+    date_range = f"Week of {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+    formatted_action_items = "".join(action_items_list)
+
+    # Create the final formatted summary in HTML
+    formatted_summary = Markup(f"""
+    <h2>{date_range}</h2>
+    <p>Calls: {num_calls}</p>
+    <p>Emails: {num_emails}</p>
+    <p>Meetings: {num_meetings}</p>
+    <h3>Action Items:</h3>
+    <ul>{formatted_action_items}</ul>
+    """)
+
+    return formatted_summary
+
+
 @feed_blueprint.route('/feed', methods=['GET'])
 def feed():
+
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Number of items per page
 

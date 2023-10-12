@@ -4,6 +4,8 @@ import openai
 from flask import Blueprint, jsonify, request, render_template
 from scipy.io.wavfile import write
 
+import main
+
 # documents to make phone call with python using twilio
 # https://www.twilio.com/docs/voice/quickstart/python#make-an-outgoing-phone-call-with-python
 
@@ -32,7 +34,7 @@ with open('config.json') as f:
 
 
 def audio_to_text():
-    openai.api_key = config['openai_api-key']
+    openai.api_key = main.openai_api_key
     audio_file = open("my_received_audio.webm", "rb")
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
@@ -80,7 +82,7 @@ def text_to_advice(text):
     # Sample usage
     from langchain.chat_models import ChatOpenAI
 
-    llm = ChatOpenAI(openai_api_key=config['openai_api-key'], model_name="gpt-3.5-turbo")
+    llm = ChatOpenAI(openai_api_key=main.openai_api_key, model_name="gpt-3.5-turbo")
 
     # Example conversation
     salesman_conversation = "I think our product would be a great fit for your needs."

@@ -8,17 +8,21 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from dotenv import load_dotenv
 
-with open('config.json') as f:
-    config = json.load(f)
-
-os.environ["SERPER_API_KEY"] = config['SERPER_API_KEY']
+# import main
+#
+# with open('config.json') as f:
+#     config = json.load(f)
+load_dotenv()
+serper_api_key = os.getenv("SERPER_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 from langchain.utilities import GoogleSerperAPIWrapper
 
 bio_blueprint = Blueprint('bio_blueprint', __name__)
 search = GoogleSerperAPIWrapper()
-chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key)
 
 
 @bio_blueprint.route('/generate_bio', methods=['POST'])

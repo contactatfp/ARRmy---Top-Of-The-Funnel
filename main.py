@@ -19,8 +19,9 @@ from langchain.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from sqlalchemy import text
 from sqlalchemy.orm import joinedload
+from dotenv import load_dotenv
+import os
 
-import main
 from app.forms import EventForm
 from app.forms import SignupForm, LoginForm, InvitationForm
 from app.models import db, User, RoleEnum, init_db, Account, Contact, Interaction, Event, Address, Invitation, \
@@ -31,6 +32,7 @@ from app.feed import feed_blueprint
 from flask_caching import Cache
 import faker
 from app.voice_assist import voice_blueprint
+from celery import Celery
 
 app = Flask(__name__)
 app.register_blueprint(bio_blueprint)
@@ -39,10 +41,34 @@ app.register_blueprint(feed_blueprint)
 
 cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(app)
+load_dotenv()
 
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+consumer_key = os.getenv("CONSUMER_KEY")
+consumer_secret = os.getenv("CONSUMER_SECRET")
+google_maps_api = os.getenv("GOOGLE_MAPS_API")
+google_api_key = os.getenv("GOOGLE_API_KEY")
+google_cse_id = os.getenv("GOOGLE_CSE_ID")
+serper_api_key = os.getenv("SERPER_API_KEY")
+username = os.getenv("USERNAME")
+password = os.getenv("PASSWORD")
 
 class Config:
     SCHEDULER_API_ENABLED = True
+
+
+
+@app.route('/start_task')
+def start_task():
+    from app.background_process import my_background_task
+
+    task = my_background_task.apply_async(args=[10, 20])
+    return 'Task started'
+
 
 
 app.config.from_object(Config)
@@ -56,7 +82,8 @@ migrate = Migrate(app, db)
 # Configure your app
 app.config.from_object('app.config')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key'
+app.secret_key = os.getenv("SECRET_KEY")
+
 
 # Initialize the database
 init_db(app)
@@ -64,9 +91,24 @@ init_db(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+#
+# with open('config.json') as f:
+#     config = json.load(f)
 
-with open('config.json') as f:
-    config = json.load(f)
+
+
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['BROKER_URL']
+    )
+    celery.conf.update(app.config)
+    return celery
+
+app.config.from_object('app.celery_config')
+celery = make_celery(app)
+
 
 DOMAIN = "https://fakepicasso-dev-ed.develop.my.salesforce.com"
 SALESFORCE_API_ENDPOINT = "/services/data/v58.0/sobjects/"
@@ -120,7 +162,7 @@ def prospecting():
 
             company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
 
-            chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+            chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key)
             template = (
                 "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
                 "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
@@ -215,7 +257,7 @@ def prospect_company(company_id):
 
         company_bio = f"{overview} {products} {market} {achievements} {industry_pain} {concerns} {operational_challenges} {latest_news} {recent_events} {customer_feedback} {recent_partnerships}"
 
-        chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=config['openai_api-key'])
+        chat = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key)
         template = (
             "You are a helpful assistant that takes in a customer company bio and converts it to a report for a sales "
             "rep. The sales rep works for a separate company and is trying to sell into the company with the bio. The bio will"
@@ -435,8 +477,8 @@ def test_login():
     # Build payload with form input and Salesforce App credentials
     payload = {
         'grant_type': 'password',
-        'client_id': config['consumer-key'],
-        'client_secret': config['consumer-secret'],
+        'client_id': consumer_key,
+        'client_secret': consumer_secret,
         'username': name,
         'password': pw
     }
@@ -515,8 +557,8 @@ def login():
         # Build payload with form input and Salesforce App credentials
         payload = {
             'grant_type': 'password',
-            'client_id': config['consumer-key'],
-            'client_secret': config['consumer-secret'],
+            'client_id': consumer_key,
+            'client_secret': consumer_secret,
             'username': username,
             'password': password
         }
@@ -564,6 +606,8 @@ def login():
 
                 else:
                     return redirect(url_for('index'))
+        if response.status_code == 302:
+            return redirect(url_for('dash'))
         flash('Invalid username or password')
         return redirect(url_for('login'))
     return render_template('login.html', form=form)
@@ -616,7 +660,7 @@ def event_list(account_id, event_city):
 
 def notes_summary(account_id):
     db = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", verbose=True, openai_api_key=config['openai_api-key'])
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", verbose=True, openai_api_key=openai_api_key)
     db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
     # account = query account with ID 001Dp00000KBTVRIA5
     account = Account.query.get(account_id)
@@ -1016,7 +1060,7 @@ def get_distance(city1, city2):
         "origins": city1,
         "destinations": city2,
         "units": "imperial",
-        "key": config['google-maps-api'],
+        "key": google_maps_api,
     }
 
     # Send the GET request
@@ -1220,10 +1264,10 @@ def tokens():
     try:
         payload = {
             'grant_type': 'password',
-            'client_id': config['consumer-key'],
-            'client_secret': config['consumer-secret'],
-            'username': 'contact@fakepicasso.com',
-            'password': config['sf-pw']
+            'client_id': consumer_key,
+            'client_secret': consumer_secret,
+            'username': username,
+            'password': password
         }
         oauth_endpoint = f"{DOMAIN}/services/oauth2/token"
         response = requests.post(oauth_endpoint, data=payload)
@@ -1242,8 +1286,8 @@ def get_user_token(username, pw):
     try:
         payload = {
             'grant_type': 'password',
-            'client_id': config['consumer-key'],
-            'client_secret': config['consumer-secret'],
+            'client_id': consumer_key,
+            'client_secret': consumer_secret,
             'username': username,
             'password': pw
         }
@@ -2022,8 +2066,8 @@ def news():
 
     import os
 
-    os.environ["GOOGLE_CSE_ID"] = config['GOOGLE_CSE_ID']
-    os.environ["GOOGLE_API_KEY"] = config['GOOGLE_API_KEY']
+    os.environ["GOOGLE_CSE_ID"] = google_cse_id
+    os.environ["GOOGLE_API_KEY"] = google_api_key
 
     search = GoogleSearchAPIWrapper()
 
@@ -2347,7 +2391,7 @@ def language_sql():
     query = request.args.get('query', default='How many accounts have a score over 50 total?', type=str)
     db = SQLDatabase.from_uri("sqlite:///instance/sfdc.db")
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", verbose=True,
-                     openai_api_key=config['openai_api-key'])
+                     openai_api_key=openai_api_key)
     db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
 
     answer = db_chain.run(query)
@@ -2381,16 +2425,15 @@ def parse_dates(record, date_fields):
 
 @app.route('/data', methods=['GET', 'POST'])
 def data():
-    contact = main.contacts()
-    events = main.generate_event_data()
-    interactions = main.generate_interaction_data()
-    jobs = main.add_job_titles()
-    address = main.add_account_billing_address()
-    industry = main.add_account_industry()
-    notes = main.add_account_notes()
-
-    rank = main.scheduled_rank_companies()
-    # prospect = main.prospecting()
+    contacts()
+    generate_event_data()
+    generate_interaction_data()
+    add_job_titles()
+    add_account_billing_address()
+    add_account_industry()
+    add_account_notes()
+    scheduled_rank_companies()
+    # prospecting()
 
     return redirect(url_for('dash'))
 

@@ -1,6 +1,9 @@
 import sounddevice, json
 
 from scipy.io.wavfile import write
+
+import main
+
 #sample_rate
 fs=44100
 #Ask to enter the recording time
@@ -17,10 +20,8 @@ print("Recording is done Please check you folder to listen recording")
 import os
 import openai
 
-with open('../config.json') as f:
-    config = json.load(f)
 
-openai.api_key = config['openai_api-key']
+openai.api_key = main.openai_api_key
 audio_file = open("MyRecording.wav", "rb")
 transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
