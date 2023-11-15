@@ -44,7 +44,7 @@ def make_call():
     # remove any non-numeric characters from the phone number
     contactPhone = ''.join(i for i in contactPhone if i.isdigit())
 
-    twiml_url = f'https://e7a1-73-92-205-118.ngrok-free.app/twiml?contactPhone={contactPhone}&accountId={accountId}&contactId={contactId}'
+    twiml_url = url_for('twiml_response', _external=True, contactPhone=contactPhone, accountId=accountId, contactId=contactId)
     call = client.calls.create(
         to='14087907053',
         from_='18449683560',
@@ -61,7 +61,7 @@ def twiml_response():
     contactId = request.values.get('contactId', '')
     response = VoiceResponse()
     dial = Dial(record='record-from-answer',
-                recordingStatusCallback=f'https://e7a1-73-92-205-118.ngrok-free.app/status_callback?accountId={accountId}&contactId={contactId}')
+                recordingStatusCallback=url_for('status_callback', _external=True, accountId=accountId, contactId=contactId))
     dial.number(str(contactPhone))
     response.append(dial)
     return Response(str(response), mimetype='text/xml')
