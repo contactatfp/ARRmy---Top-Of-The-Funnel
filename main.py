@@ -7,9 +7,11 @@ from flask import Flask
 from flask_apscheduler import APScheduler
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 from app.accounts import accounts_blueprint
 from app.authentication import auth_blueprint
