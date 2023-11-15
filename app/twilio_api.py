@@ -61,7 +61,7 @@ def twiml_response():
     contactId = request.values.get('contactId', '')
     response = VoiceResponse()
     dial = Dial(record='record-from-answer',
-                recordingStatusCallback=url_for('status_callback', _external=True, accountId=accountId, contactId=contactId))
+                recordingStatusCallback=url_for('twilio.status_callback', _external=True, accountId=accountId, contactId=contactId))
     dial.number(str(contactPhone))
     response.append(dial)
     return Response(str(response), mimetype='text/xml')
