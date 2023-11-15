@@ -30,6 +30,7 @@ Faker==19.2.0
 Flask==2.3.2
 Flask-APScheduler==1.12.4
 Flask-Caching==2.0.2
+Flask-Cors==4.0.0
 Flask-Login==0.6.2
 Flask-Migrate==4.0.4
 Flask-SocketIO==5.3.6
@@ -108,7 +109,7 @@ typing_extensions==4.6.3
 tzdata==2023.3
 tzlocal==5.0.1
 uritemplate==4.1.1
-urllib3<2.0
+urllib3==1.26.18
 vine==5.0.0
 wcwidth==0.2.6
 Werkzeug==2.3.6
