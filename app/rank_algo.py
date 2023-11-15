@@ -1,9 +1,8 @@
-from app.models import Account, Interaction, AccountActivity, InteractionType
-from datetime import datetime, timedelta
-from sqlalchemy import and_
-
-
 from collections import defaultdict
+from datetime import datetime
+
+from app.models import Account, Interaction, InteractionType
+
 
 def rank_companies():
     # Fetch all accounts

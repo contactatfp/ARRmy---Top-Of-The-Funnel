@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <h2 style="text-align: center; color: #007aff; margin-top: 20px;">Interaction Log</h2>
+    <div class="interaction-log" style="margin-top: 20px;">
+        {% for interaction in interactions %}
+        <div class="interaction-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dcdcdc; padding: 10px 0;">
+            <div style="flex-grow: 1;">
+                <div style="font-weight: bold; color: #000;">{{ interaction.contact_name }}</div>
+                <div style="color: #8e8e93;">{{ interaction.account_name }}</div>
+                <div style="color: #8e8e93;">{{ interaction.description | truncate(100) }}</div>
+            </div>
+            <div style="color: #8e8e93; white-space: nowrap;">
+                {{ interaction.timestamp }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

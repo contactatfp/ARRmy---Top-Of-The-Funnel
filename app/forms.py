@@ -32,7 +32,7 @@ class EventForm(FlaskForm):
     location = StringField('Location', validators=[DataRequired()])
     start_time = DateTimeField('Start Time', validators=[DataRequired()])
     end_time = DateTimeField('End Time', validators=[DataRequired()])
-    audience = SelectField('Audience', choices=[('1', 'ALL'), ('2', 'MANAGER+'), ('3', 'VP+'), ('4', 'C-SUITE')])
+    audience = SelectField('Audience', choices=[(1, 'ALL'), (3, 'MANAGER+'), (8, 'VP+'), (10, 'C-SUITE')])
 
     # New Fields
     event_type = SelectField('Event Type', choices=[('company_hosted', 'Company Hosted'), ('third_party', '3rd Party')], validators=[DataRequired()])

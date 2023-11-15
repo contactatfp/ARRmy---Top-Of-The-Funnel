@@ -26,7 +26,7 @@ def fetch_events(limit=10, offset=0):
 def fetch_alerts(limit=10, offset=0):
     from app.models import FeedItem, FeedItemType, db
     alerts = db.session.query(FeedItem).filter(
-        FeedItem.feed_item_type == FeedItemType.alert,
+        FeedItem.feed_item_type.in_([FeedItemType.alert, FeedItemType.focus]),
         FeedItem.user_id == current_user.id
     ).limit(limit).offset(offset).all()
 
@@ -34,13 +34,17 @@ def fetch_alerts(limit=10, offset=0):
     for alert in alerts:
         # Your logic to beautify the text, for example:
         beautified_text = alert.content.replace('<Contact ', '').replace('>', '')
+        title = alert.feed_item_type.value
+        date = alert.created_at.strftime('%b %d, %Y')
 
         # Include alert_contacts in the output
-        alert_contacts = alert.get_alert_contacts()  # Assuming you have a method that can fetch and deserialize the alert_contacts
+        alert_contacts = alert.get_alert_contacts()
 
         beautified_alerts.append({
             'text': beautified_text,
-            'alert_contacts': alert_contacts
+            'alert_contacts': alert_contacts,
+            'title': title,
+            'date': date
         })
 
     return beautified_alerts
@@ -51,8 +55,11 @@ def fetch_meetings(limit=10, offset=0):
     return [{'text': 'Sample Meeting'}] * limit
 
 
+import json  # Add this import at the top of your file if it's not already there
+
+
 def interaction_previous_week(limit=10, offset=0):
-    from app.models import FeedItem, FeedItemType, db  # Make sure to import the necessary models
+    from app.models import FeedItem, FeedItemType, db
     user_id = current_user.id
 
     # Check if a summary exists in the last 24 hours
@@ -65,13 +72,14 @@ def interaction_previous_week(limit=10, offset=0):
 
     if existing_summary:
         return [{'text': existing_summary.content}] * 1
-    summary = reg_sql()
+    summary, contacts = reg_sql()
 
     # Create new FeedItem object
     new_feed_item = FeedItem()
     new_feed_item.user_id = user_id
     new_feed_item.feed_item_type = FeedItemType.interaction_summary
     new_feed_item.content = summary
+    new_feed_item.alert_contacts = json.dumps(contacts)  # Serialize the list to JSON
 
     # Add new FeedItem to session and commit
     db.session.add(new_feed_item)
@@ -88,7 +96,8 @@ def reg_sql():
     SELECT 
         "interaction_type", 
         COUNT("interaction_type") as "Count", 
-        GROUP_CONCAT("description", '; ') as "ActionItems" 
+        GROUP_CONCAT("description", '; ') as "ActionItems",
+        GROUP_CONCAT("contactId", ', ') as "ContactIds" 
     FROM 
         interaction 
     WHERE 
@@ -106,6 +115,11 @@ def reg_sql():
     keys = result.keys()
     summaries = [dict(zip(keys, row)) for row in result]
     action_items_list = []
+    contactIdsList = []
+
+    num_calls = 0
+    num_emails = 0
+    num_meetings = 0
 
     # Loop through each summary to populate the counts and action items
     for summary in summaries:
@@ -118,6 +132,7 @@ def reg_sql():
         elif summary['interaction_type'] == 'meeting':
             num_meetings = summary['Count']
             action_items_list.append(f"<li>From Meetings: {summary['ActionItems']}</li>")
+        contactIdsList.extend(summary['ContactIds'].split(', '))
 
     # Get the date range for the last week
     end_date = datetime.now()
@@ -126,23 +141,27 @@ def reg_sql():
     # Format the date range and action items
     date_range = f"Week of {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     formatted_action_items = "".join(action_items_list)
-
+    weekly_summary = 'Weekly Summary'
     # Create the final formatted summary in HTML
     formatted_summary = Markup(f"""
-    <h2>{date_range}</h2>
-    <p>Calls: {num_calls}</p>
-    <p>Emails: {num_emails}</p>
-    <p>Meetings: {num_meetings}</p>
-    <h3>Action Items:</h3>
-    <ul>{formatted_action_items}</ul>
+    <div class='card-header'>
+        <span class='date'>{date_range}</span>
+        <span class='card-status-summary'>{weekly_summary}</span>
+    </div>
+    <div class='card-body'>
+        <p>Calls: {num_calls}</p>
+        <p>Emails: {num_emails}</p>
+        <p>Meetings: {num_meetings}</p>
+        <span class='date'>Action Items:</span>
+        <ul>{formatted_action_items}</ul>
+    </div>
     """)
 
-    return formatted_summary
+    return formatted_summary, contactIdsList
 
 
 @feed_blueprint.route('/feed', methods=['GET'])
 def feed():
-
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Number of items per page
 

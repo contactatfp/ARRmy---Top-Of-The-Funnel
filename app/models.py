@@ -260,6 +260,9 @@ class Interaction(db.Model):
     interaction_type = db.Column(db.Enum(InteractionType))
     description = db.Column(db.String)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    key_points = db.Column(db.Text)
+    sentiment = db.Column(db.Text)
+    action_items = db.Column(db.Text)
     account_id = db.Column(db.String, db.ForeignKey('account.Id'))
     user_id = db.Column(db.String, db.ForeignKey('users.id'))
     contactId = db.Column(db.String, db.ForeignKey('contact.Id'))
@@ -390,6 +393,7 @@ class CustomerStory(db.Model):
 class FeedItemType(enum.Enum):
     interaction_summary = "Interaction Summary"
     alert = "Alert"
+    focus = "Focus"
     # add other types of feed items as needed
 
 
@@ -404,7 +408,6 @@ class FeedItem(db.Model):
 
     user = db.relationship('User', backref=db.backref('feed_items', lazy=True))
     alert_contacts = db.Column(db.Text)  # New field to store contact IDs
-
 
     def set_alert_contacts(self, contacts):
         self.alert_contacts = json.dumps([contact.Id for contact in contacts])

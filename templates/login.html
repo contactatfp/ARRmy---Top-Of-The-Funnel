@@ -21,7 +21,7 @@
       <div class="container">
         <div class="flex-stack-center">
           <div class="form-wrapper w-form">
-            <form id="wf-form-login" name="wf-form-login" data-name="login" method="post" action="{{ url_for('login') }}" data-ms-form="login" class="form-container" data-wf-page-id="650f593a788d34c590106c88" data-wf-element-id="79e38668-a105-bb00-2eaf-44599abf8bd5">{{ form.csrf_token }}
+            <form id="wf-form-login" name="wf-form-login" data-name="login" method="post" action="{{ url_for('auth.login') }}" data-ms-form="login" class="form-container" data-wf-page-id="650f593a788d34c590106c88" data-wf-element-id="79e38668-a105-bb00-2eaf-44599abf8bd5">{{ form.csrf_token }}
 
                 <div class="margin-bottom">
                 <h2 class="h2">Login</h2>
@@ -33,7 +33,7 @@
                     <div data-ms-auth-disconnect="true" class="disconnect-link"><img src="../static/img/close_black_24dp.svg" loading="lazy" alt="" class="disconnect-image"></div>
                   </div>
                 </a>
-                <a data-ms-auth-provider="facebook" href="{{url_for('test_login')}}" class="social-btn facebook solid w-inline-block">
+                <a data-ms-auth-provider="facebook" href="{{url_for('auth.test_login')}}" class="social-btn facebook solid w-inline-block">
                   <div class="social-content"><img src="../static/img/facebook-white.svg" loading="lazy" alt="" class="social-image">
                     <div data-ms-auth-connected-text="Disconnect Facebook" class="social-text">Continue with Facebook</div>
                     <div data-ms-auth-disconnect="true" class="disconnect-link"><img src="../static/img/close_black_24dp.svg" loading="lazy" alt="" class="disconnect-image white"></div>
