@@ -44,7 +44,7 @@ app.register_blueprint(alerts_blueprint)
 app.register_blueprint(twilio_blueprint)
 
 init_login_manager(app)
-socketio.init_app(app)
+# socketio.init_app(app)
 
 
 # cache = Cache(config={'CACHE_TYPE': 'simple'})

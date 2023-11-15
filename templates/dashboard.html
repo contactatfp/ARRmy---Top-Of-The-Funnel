@@ -1726,7 +1726,12 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
 
   <script type="text/javascript">
-    const socket = io.connect('https://enigmatic-everglades-78949-a7725d7c8c26.herokuapp.com/');
+    const socket = io.connect('https://enigmatic-everglades-78949-a7725d7c8c26.herokuapp.com/', {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity
+    });
 
     socket.on('connect', function() {
       console.log('Connected to the server!');
