@@ -1,5 +1,4 @@
 import os, json
-from langchain import GoogleSearchAPIWrapper
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import Tool
 from langchain.chains import create_extraction_chain

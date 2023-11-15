@@ -6,7 +6,7 @@ import faker
 import random
 from flask import Blueprint, request, jsonify, abort, render_template
 from flask_login import login_required
-from langchain import GoogleSearchAPIWrapper
+from langchain.utilities import GoogleSearchAPIWrapper
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import Tool
 from langchain.utilities import SQLDatabase
