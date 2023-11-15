@@ -23,12 +23,12 @@ from app.models import db, init_db
 from app.prospecting import bio_blueprint
 from app.utils import cache, util_blueprint
 from app.views import views_blueprint
-from app.voice_assist import voice_blueprint
+# from app.voice_assist import voice_blueprint
 from app.alerts import alerts_blueprint
 from app.twilio_api import twilio_blueprint
 
 app.register_blueprint(bio_blueprint)
-app.register_blueprint(voice_blueprint)
+# app.register_blueprint(voice_blueprint)
 app.register_blueprint(feed_blueprint)
 app.register_blueprint(auth_blueprint)
 app.register_blueprint(events_blueprint)
