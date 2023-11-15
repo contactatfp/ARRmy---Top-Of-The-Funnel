@@ -44,7 +44,7 @@ def make_call():
     # remove any non-numeric characters from the phone number
     contactPhone = ''.join(i for i in contactPhone if i.isdigit())
 
-    twiml_url = url_for('twiml_response', _external=True, contactPhone=contactPhone, accountId=accountId, contactId=contactId)
+    twiml_url = url_for('twilio.twiml_response', _external=True, contactPhone=contactPhone, accountId=accountId, contactId=contactId)
     call = client.calls.create(
         to='14087907053',
         from_='18449683560',
