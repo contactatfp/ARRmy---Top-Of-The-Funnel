@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_apscheduler import APScheduler
 from flask_migrate import Migrate
-from flask_socketio import SocketIO
-from flask_cors import CORS
+# from flask_socketio import SocketIO
+# from flask_cors import CORS
 
 app = Flask(__name__)
 # CORS(app, resources={r"/*": {"origins": "*"}})
