@@ -1723,10 +1723,10 @@
   </script>
 
   <!-- Include the Socket.IO client library -->
-  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 
   <script type="text/javascript">
-    const socket = io.connect('https://enigmatic-everglades-78949-a7725d7c8c26.herokuapp.com/', {
+    const socket = io.connect('https://www.arrplan.com/', {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -1745,6 +1745,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>`;
       document.body.insertAdjacentHTML('afterbegin', alertHtml);
+      console.log('Alert Sent!');
+
     });
   </script>
 
