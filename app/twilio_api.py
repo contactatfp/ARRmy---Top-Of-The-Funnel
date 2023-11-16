@@ -1,4 +1,7 @@
 import os
+import time
+from flask import stream_with_context
+
 from flask import Blueprint, request, jsonify, Response, render_template, redirect, url_for
 from twilio.rest import Client
 from dotenv import load_dotenv
@@ -66,6 +69,8 @@ def twiml_response():
     response.append(dial)
     return Response(str(response), mimetype='text/xml')
 
+call_status_updates = {}
+
 
 @twilio_blueprint.route("/status_callback", methods=['POST'])
 def status_callback():
@@ -82,10 +87,26 @@ def status_callback():
         save_interaction_results(accountId, contactId, meeting_analysis)
         # Emit an event to the connected clients
         socketio.emit('task_complete', {'message': 'Call Analysis Complete!', 'data': meeting_analysis})
+        call_status_updates[accountId] = "Call Analysis Complete"
 
         return jsonify(meeting_analysis), 200
 
     return '', 400  # It's a good practice to return a client error status if conditions aren't met
+
+
+@twilio_blueprint.route('/stream')
+def stream():
+    def generate():
+        # Infinite loop to continuously send data
+        while True:
+            for account_id, status in call_status_updates.items():
+                yield f"data: {status}\n\n"
+                # Remove the update after sending to avoid repeated notifications
+                del call_status_updates[account_id]
+
+            time.sleep(5)  # Adjust the delay as needed
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 
 def save_interaction_results(account_id, contact_id, analysis_results):
