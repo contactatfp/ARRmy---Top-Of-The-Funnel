@@ -1723,39 +1723,7 @@
   </script>
 
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      if (!!window.EventSource) {
-        var source = new EventSource('/stream');
 
-        source.onmessage = function(e) {
-          console.log('Data received from server:', e.data);
-          var data = JSON.parse(e.data);
-
-          // Check if data contains a message for the alert
-          if(data.message) {
-            const alertHtml = `
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-              ${data.message} <a href="/show_interactions" class="alert-link">View Interactions</a>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>`;
-            document.body.insertAdjacentHTML('afterbegin', alertHtml);
-            console.log('Alert Sent!');
-          }
-
-          // Additional actions based on data
-          // Example: Update other dashboard elements here
-        };
-
-        source.onerror = function(e) {
-          console.error("Error occurred while receiving SSE", e);
-          source.close();
-        };
-      } else {
-        console.log("Your browser does not support Server-Sent Events.");
-      }
-    });
-  </script>
 
 
 
