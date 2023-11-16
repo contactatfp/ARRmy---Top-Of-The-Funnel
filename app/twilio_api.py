@@ -86,7 +86,7 @@ def status_callback():
         # Save the analysis data to the database
         save_interaction_results(accountId, contactId, meeting_analysis)
         # Emit an event to the connected clients
-        socketio.emit('task_complete', {'message': 'Call Analysis Complete!', 'data': meeting_analysis})
+        # socketio.emit('task_complete', {'message': 'Call Analysis Complete!', 'data': meeting_analysis})
         call_status_updates[accountId] = "Call Analysis Complete"
 
         return jsonify(meeting_analysis), 200
