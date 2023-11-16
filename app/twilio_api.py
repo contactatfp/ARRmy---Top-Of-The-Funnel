@@ -74,7 +74,7 @@ call_status_updates = {}
 
 @twilio_blueprint.route("/status_callback", methods=['POST'])
 def status_callback():
-    from main import socketio
+    # from main import socketio
     recording_url = request.values.get('RecordingUrl', '')
     accountId = request.values.get('accountId', '')
     contactId = request.values.get('contactId', '')
