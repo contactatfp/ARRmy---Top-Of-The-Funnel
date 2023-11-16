@@ -1748,6 +1748,11 @@
       console.log('Alert Sent!');
 
     });
+
+    socket.on('connect_error', (error) => {
+      console.log('Connection Error:', error);
+    });
+
   </script>
 
 
