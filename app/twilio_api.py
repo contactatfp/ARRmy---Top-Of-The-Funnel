@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from flask import stream_with_context
@@ -20,6 +21,7 @@ openai_api_key = os.environ["OPENAI_API_KEY"]
 client = Client(account_sid, auth_token)
 
 twilio_blueprint = Blueprint('twilio', __name__)
+call_status_updates = {}
 
 
 @twilio_blueprint.route("/incoming_call", methods=['GET', 'POST'])
@@ -47,7 +49,12 @@ def make_call():
     # remove any non-numeric characters from the phone number
     contactPhone = ''.join(i for i in contactPhone if i.isdigit())
 
-    twiml_url = url_for('twilio.twiml_response', _external=True, contactPhone=contactPhone, accountId=accountId, contactId=contactId)
+    # call for external deployment
+    # twiml_url = url_for('twilio.twiml_response', _external=True, contactPhone=contactPhone, accountId=accountId, contactId=contactId)
+
+    # call for local deployment
+    twiml_url = f"https://e7a1-73-92-205-118.ngrok-free.app/twiml?contactPhone={contactPhone}&accountId={accountId}&contactId={contactId}"
+    print(twiml_url)
     call = client.calls.create(
         to='14087907053',
         from_='18449683560',
@@ -63,13 +70,16 @@ def twiml_response():
     accountId = request.values.get('accountId', '')
     contactId = request.values.get('contactId', '')
     response = VoiceResponse()
+    # external deployment
+    # dial = Dial(record='record-from-answer',
+    #             recordingStatusCallback=url_for('twilio.status_callback', _external=True, accountId=accountId, contactId=contactId))
+
+    # local deployment
     dial = Dial(record='record-from-answer',
-                recordingStatusCallback=url_for('twilio.status_callback', _external=True, accountId=accountId, contactId=contactId))
+                recordingStatusCallback=f"https://e7a1-73-92-205-118.ngrok-free.app/status_callback?accountId={accountId}&contactId={contactId}")
     dial.number(str(contactPhone))
     response.append(dial)
     return Response(str(response), mimetype='text/xml')
-
-call_status_updates = {}
 
 
 @twilio_blueprint.route("/status_callback", methods=['POST'])
@@ -94,17 +104,42 @@ def status_callback():
     return '', 400  # It's a good practice to return a client error status if conditions aren't met
 
 
+# import time
+# import logging
+
+# @twilio_blueprint.route('/stream')
+# def stream():
+#     def generate():
+#         yield "data: Test message\n\n"
+#         time.sleep(5)
+#
+#     return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
+
 @twilio_blueprint.route('/stream')
 def stream():
     def generate():
-        # Infinite loop to continuously send data
-        while True:
-            for account_id, status in call_status_updates.items():
-                yield f"data: {status}\n\n"
-                # Remove the update after sending to avoid repeated notifications
-                del call_status_updates[account_id]
+        last_data_time = time.time()
 
-            time.sleep(5)  # Adjust the delay as needed
+        while True:
+            current_time = time.time()
+
+            # Check for updates
+            has_update = False
+            for account_id, status in list(call_status_updates.items()):
+                logging.info(f"Sending update for account {account_id}: {status}")
+                yield f"data: {json.dumps({'message': status})}\n\n"
+                del call_status_updates[account_id]
+                last_data_time = current_time
+                has_update = True
+
+            # If there was no update, send a comment line if 55 seconds have passed
+            if not has_update and (current_time - last_data_time) >= 55:
+                logging.info("Sending keep-alive comment")
+                yield ": keep-alive\n\n"
+                last_data_time = current_time
+
+            time.sleep(1)
 
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
